@@ -41,6 +41,9 @@ class SBM_Admin {
         // Restrict admin dashboard access for non-admin users (subscribers/employees)
         add_action( 'admin_init', array( $this, 'restrict_admin_access' ) );
 
+        // Handle custom CSV exports for employees list and reports
+        add_action( 'admin_init', array( $this, 'handle_csv_exports' ) );
+
         // Hide WordPress admin bar for subscribers/employees on frontend
         add_filter( 'show_admin_bar', array( $this, 'hide_admin_bar_for_subscribers' ) );
     }
@@ -179,16 +182,110 @@ class SBM_Admin {
             return;
         }
 
+        // Fetch filter inputs
+        $search         = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+        $company_filter = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
+        $quiz_filter    = isset( $_GET['quiz_filter'] ) ? intval( $_GET['quiz_filter'] ) : 0;
+        $start_date     = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
+        $end_date       = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+        $status_filter  = isset( $_GET['status_filter'] ) ? sanitize_text_field( $_GET['status_filter'] ) : '';
+
+        // Fetch unique companies for dropdown list
+        global $wpdb;
+        $companies = $wpdb->get_col( "
+            SELECT DISTINCT meta_value 
+            FROM {$wpdb->usermeta} 
+            WHERE meta_key = 'sbm_company' AND meta_value != ''
+        " );
+        if ( ! in_array( 'S-Chem', $companies ) ) {
+            $companies[] = 'S-Chem';
+        }
+        sort( $companies );
+
+        // Fetch safety quiz forms
+        $safety_forms = array();
+        if ( class_exists( 'GFAPI' ) ) {
+            $forms = GFAPI::get_forms();
+            foreach ( $forms as $f ) {
+                if ( rgar( $f, 'sbm_enabled' ) ) {
+                    $safety_forms[] = $f;
+                }
+            }
+        }
+
         // Standard employee records list
         $list_table = new SBM_Employee_List_Table( $this->db );
         $list_table->prepare_items();
         ?>
-        <div class="wrap">
+        <div class="wrap sbm-dashboard-wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Employee Records', 'safety-badges-manager' ); ?></h1>
             <hr class="wp-header-end">
 
+            <!-- Filter Card -->
+            <div class="sbm-card sbm-filter-card" style="margin-bottom: 20px; margin-top: 20px;">
+                <form method="get" action="" class="sbm-reports-filter-form">
+                    <input type="hidden" name="page" value="safety-employees" />
+                    <?php if ( ! empty( $status_filter ) ) : ?>
+                        <input type="hidden" name="status_filter" value="<?php echo esc_attr( $status_filter ); ?>" />
+                    <?php endif; ?>
+                    <?php if ( ! empty( $search ) ) : ?>
+                        <input type="hidden" name="s" value="<?php echo esc_attr( $search ); ?>" />
+                    <?php endif; ?>
+                    
+                    <div class="sbm-filter-grid">
+                        <div class="filter-col">
+                            <label for="company_filter"><span class="dashicons dashicons-store"></span> <?php esc_html_e( 'Contracting Company', 'safety-badges-manager' ); ?></label>
+                            <select name="company_filter" id="company_filter">
+                                <option value=""><?php esc_html_e( 'All Companies', 'safety-badges-manager' ); ?></option>
+                                <?php foreach ( $companies as $comp ) : ?>
+                                    <option value="<?php echo esc_attr( $comp ); ?>" <?php selected( $company_filter, $comp ); ?>><?php echo esc_html( $comp ); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-col">
+                            <label for="quiz_filter"><span class="dashicons dashicons-welcome-learn-more"></span> <?php esc_html_e( 'Safety Quiz', 'safety-badges-manager' ); ?></label>
+                            <select name="quiz_filter" id="quiz_filter">
+                                <option value=""><?php esc_html_e( 'All Quizzes', 'safety-badges-manager' ); ?></option>
+                                <?php foreach ( $safety_forms as $f ) : ?>
+                                    <option value="<?php echo esc_attr( $f['id'] ); ?>" <?php selected( $quiz_filter, $f['id'] ); ?>><?php echo esc_html( $f['title'] ); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-col">
+                            <label for="start_date"><span class="dashicons dashicons-calendar-alt"></span> <?php esc_html_e( 'Certified Start Date', 'safety-badges-manager' ); ?></label>
+                            <input type="date" name="start_date" id="start_date" value="<?php echo esc_attr( $start_date ); ?>" />
+                        </div>
+                        <div class="filter-col">
+                            <label for="end_date"><span class="dashicons dashicons-calendar-alt"></span> <?php esc_html_e( 'Certified End Date', 'safety-badges-manager' ); ?></label>
+                            <input type="date" name="end_date" id="end_date" value="<?php echo esc_attr( $end_date ); ?>" />
+                        </div>
+                    </div>
+                    <div class="sbm-filter-actions">
+                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filters', 'safety-badges-manager' ); ?></button>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Reset Filters', 'safety-badges-manager' ); ?></a>
+                        <?php
+                        $export_url = add_query_arg( array(
+                            'action'         => 'sbm_export_employees',
+                            's'              => $search,
+                            'status_filter'  => $status_filter,
+                            'company_filter' => $company_filter,
+                            'quiz_filter'    => $quiz_filter,
+                            'start_date'     => $start_date,
+                            'end_date'       => $end_date,
+                        ), admin_url( 'admin.php' ) );
+                        ?>
+                        <a href="<?php echo esc_url( $export_url ); ?>" class="button button-secondary"><span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export CSV', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </form>
+            </div>
+
             <form id="sbm-employee-filter" method="get">
                 <input type="hidden" name="page" value="safety-employees" />
+                <input type="hidden" name="company_filter" value="<?php echo esc_attr( $company_filter ); ?>" />
+                <input type="hidden" name="quiz_filter" value="<?php echo esc_attr( $quiz_filter ); ?>" />
+                <input type="hidden" name="start_date" value="<?php echo esc_attr( $start_date ); ?>" />
+                <input type="hidden" name="end_date" value="<?php echo esc_attr( $end_date ); ?>" />
+                <input type="hidden" name="status_filter" value="<?php echo esc_attr( $status_filter ); ?>" />
                 <?php
                 // Display search box and filters
                 $list_table->search_box( esc_html__( 'Search Employees', 'safety-badges-manager' ), 'sbm-search' );
@@ -379,6 +476,16 @@ class SBM_Admin {
                     <div class="sbm-filter-actions">
                         <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filters', 'safety-badges-manager' ); ?></button>
                         <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-reports' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Reset Filters', 'safety-badges-manager' ); ?></a>
+                        <?php
+                        $export_reports_url = add_query_arg( array(
+                            'action'     => 'sbm_export_reports',
+                            'company'    => $company,
+                            'form_id'    => $form_id,
+                            'start_date' => $start_date,
+                            'end_date'   => $end_date,
+                        ), admin_url( 'admin.php' ) );
+                        ?>
+                        <a href="<?php echo esc_url( $export_reports_url ); ?>" class="button button-secondary"><span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export CSV', 'safety-badges-manager' ); ?></a>
                     </div>
                 </form>
             </div>
@@ -635,6 +742,148 @@ class SBM_Admin {
     }
 
     /**
+     * Handle custom CSV exports for Employees and Reports.
+     */
+    public function handle_csv_exports() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        if ( isset( $_GET['action'] ) ) {
+            if ( 'sbm_export_employees' === $_GET['action'] ) {
+                $search         = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+                $status_filter  = isset( $_GET['status_filter'] ) ? sanitize_text_field( $_GET['status_filter'] ) : '';
+                $company_filter = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
+                $quiz_filter    = isset( $_GET['quiz_filter'] ) ? intval( $_GET['quiz_filter'] ) : 0;
+                $start_date     = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
+                $end_date       = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+
+                // Query all matching employees (offset 0, high limit)
+                $items = $this->db->get_employee_records( array(
+                    'search'         => $search,
+                    'status_filter'  => $status_filter,
+                    'company_filter' => $company_filter,
+                    'quiz_filter'    => $quiz_filter,
+                    'start_date'     => $start_date,
+                    'end_date'       => $end_date,
+                    'number'         => 10000,
+                    'offset'         => 0
+                ) );
+
+                $filename = 'employees_export_' . date('Y-m-d') . '.csv';
+
+                header('Content-Type: text/csv; charset=utf-8');
+                header('Content-Disposition: attachment; filename=' . $filename);
+                
+                $output = fopen('php://output', 'w');
+                
+                fputcsv($output, array(
+                    'Employee Name',
+                    'Email Address',
+                    'Iqaama/Passport No.',
+                    'Company',
+                    'Compliance Status',
+                    'Active Badge #',
+                    'Certified On',
+                    'Expires On'
+                ));
+
+                foreach ( $items as $item ) {
+                    $status = $item->badge_status;
+                    $status_label = 'Never Certified';
+                    if ( 'active' === $status ) {
+                        $status_label = 'Active / Compliant';
+                    } elseif ( 'expired' === $status ) {
+                        $status_label = 'Expired';
+                    } elseif ( 'revoked' === $status ) {
+                        $status_label = 'Revoked';
+                    }
+
+                    $iqama   = get_user_meta( $item->user_id, 'sbm_iqama', true );
+                    $company = get_user_meta( $item->user_id, 'sbm_company', true );
+                    if ( empty( $company ) ) {
+                        $company = 'S-Chem';
+                    }
+
+                    fputcsv($output, array(
+                        $item->display_name,
+                        $item->user_email,
+                        $iqama,
+                        $company,
+                        $status_label,
+                        ! empty( $item->badge_number ) ? $item->badge_number : '-',
+                        ( ! empty( $item->pass_date ) && $item->pass_date !== '0000-00-00 00:00:00' ) ? date('Y-m-d', strtotime( $item->pass_date )) : '-',
+                        ( ! empty( $item->expiry_date ) && $item->expiry_date !== '0000-00-00 00:00:00' ) ? date('Y-m-d', strtotime( $item->expiry_date )) : '-'
+                    ));
+                }
+
+                fclose($output);
+                exit;
+            } elseif ( 'sbm_export_reports' === $_GET['action'] ) {
+                $company    = isset( $_GET['company'] ) ? sanitize_text_field( $_GET['company'] ) : '';
+                $form_id    = isset( $_GET['form_id'] ) ? intval( $_GET['form_id'] ) : 0;
+                $start_date = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
+                $end_date   = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+
+                $entries = $this->db->get_reports_data( array(
+                    'company'    => $company,
+                    'form_id'    => $form_id,
+                    'start_date' => $start_date,
+                    'end_date'   => $end_date
+                ) );
+
+                $filename = 'safety_reports_export_' . date('Y-m-d') . '.csv';
+
+                header('Content-Type: text/csv; charset=utf-8');
+                header('Content-Disposition: attachment; filename=' . $filename);
+                
+                $output = fopen('php://output', 'w');
+                
+                fputcsv($output, array(
+                    'Entry ID',
+                    'Employee Name',
+                    'Iqaama/Passport No.',
+                    'Company',
+                    'Form ID',
+                    'Quiz Title',
+                    'Submission Date',
+                    'Score (%)',
+                    'Result'
+                ));
+
+                foreach ( $entries as $entry ) {
+                    $user = get_userdata( $entry->user_id );
+                    $user_name = $user ? $user->display_name : 'Guest';
+                    $iqama = get_user_meta( $entry->user_id, 'sbm_iqama', true );
+                    
+                    $form_title = 'Form #' . $entry->form_id;
+                    if ( class_exists( 'GFAPI' ) ) {
+                        $form_info = GFAPI::get_form( $entry->form_id );
+                        if ( $form_info ) {
+                            $form_title = $form_info['title'];
+                        }
+                    }
+
+                    fputcsv($output, array(
+                        $entry->entry_id,
+                        $user_name,
+                        $iqama,
+                        $entry->company,
+                        $entry->form_id,
+                        $form_title,
+                        date('Y-m-d H:i:s', strtotime( $entry->date_created )),
+                        $entry->score_percent !== null ? floatval( $entry->score_percent ) . '%' : '-',
+                        $entry->is_pass == '1' ? 'Passed' : 'Failed'
+                    ));
+                }
+
+                fclose($output);
+                exit;
+            }
+        }
+    }
+
+    /**
      * Restrict wp-admin access for subscribers and redirect them to the homepage.
      */
     public function restrict_admin_access() {
@@ -811,42 +1060,64 @@ class SBM_Employee_List_Table extends WP_List_Table {
      * Set up views filters (e.g. All, Active, Expired, Untrained).
      */
     protected function get_views() {
-        $current = isset( $_GET['status_filter'] ) ? sanitize_text_field( $_GET['status_filter'] ) : '';
-        $company = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
+        $current        = isset( $_GET['status_filter'] ) ? sanitize_text_field( $_GET['status_filter'] ) : '';
+        $company_filter = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
+        $quiz_filter    = isset( $_GET['quiz_filter'] ) ? intval( $_GET['quiz_filter'] ) : 0;
+        $start_date     = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
+        $end_date       = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
         
-        $company_arg = ! empty( $company ) ? '&company_filter=' . urlencode( $company ) : '';
+        $filter_args = array();
+        if ( ! empty( $company_filter ) ) {
+            $filter_args['company_filter'] = $company_filter;
+        }
+        if ( ! empty( $quiz_filter ) ) {
+            $filter_args['quiz_filter'] = $quiz_filter;
+        }
+        if ( ! empty( $start_date ) ) {
+            $filter_args['start_date'] = $start_date;
+        }
+        if ( ! empty( $end_date ) ) {
+            $filter_args['end_date'] = $end_date;
+        }
 
         // Count totals for badges
-        $active_count  = $this->db->get_employee_records_count( array( 'status_filter' => 'active', 'company_filter' => $company ) );
-        $expired_count = $this->db->get_employee_records_count( array( 'status_filter' => 'expired', 'company_filter' => $company ) );
-        $none_count    = $this->db->get_employee_records_count( array( 'status_filter' => 'none', 'company_filter' => $company ) );
-        $all_count     = $this->db->get_employee_records_count( array( 'company_filter' => $company ) );
+        $count_args = array(
+            'company_filter' => $company_filter,
+            'quiz_filter'    => $quiz_filter,
+            'start_date'     => $start_date,
+            'end_date'       => $end_date,
+        );
+
+        $active_count  = $this->db->get_employee_records_count( array_merge( $count_args, array( 'status_filter' => 'active' ) ) );
+        $expired_count = $this->db->get_employee_records_count( array_merge( $count_args, array( 'status_filter' => 'expired' ) ) );
+        $none_count    = $this->db->get_employee_records_count( array_merge( $count_args, array( 'status_filter' => 'none' ) ) );
+        $all_count     = $this->db->get_employee_records_count( $count_args );
 
         $views = array(
             'all' => sprintf(
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
-                admin_url( 'admin.php?page=safety-employees' . $company_arg ),
+                esc_url( add_query_arg( array_merge( $filter_args, array( 'status_filter' => '' ) ), admin_url( 'admin.php?page=safety-employees' ) ) ),
                 empty( $current ) ? 'current' : '',
                 esc_html__( 'All Employees', 'safety-badges-manager' ),
                 $all_count
             ),
             'active' => sprintf(
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
-                admin_url( 'admin.php?page=safety-employees&status_filter=active' . $company_arg ),
+                esc_url( add_query_arg( array_merge( $filter_args, array( 'status_filter' => 'active' ) ), admin_url( 'admin.php?page=safety-employees' ) ) ),
                 'active' === $current ? 'current' : '',
                 esc_html__( 'Active / Compliant', 'safety-badges-manager' ),
                 $active_count
             ),
             'expired' => sprintf(
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
-                admin_url( 'admin.php?page=safety-employees&status_filter=expired' . $company_arg ),
+                esc_url( add_query_arg( array_merge( $filter_args, array( 'status_filter' => 'expired' ) ), admin_url( 'admin.php?page=safety-employees' ) ) ),
                 'expired' === $current ? 'current' : '',
                 esc_html__( 'Expired', 'safety-badges-manager' ),
                 $expired_count
             ),
             'none' => sprintf(
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
-                admin_url( 'admin.php?page=safety-employees&status_filter=none' . $company_arg ),
+                esc_url( add_query_arg( array_merge( $filter_args, array( 'status_filter' => 'none' ) ), admin_url( 'admin.php?page=safety-employees' ) ) ),
                 'none' === $current ? 'current' : '',
                 esc_html__( 'Untrained', 'safety-badges-manager' ),
                 $none_count
@@ -859,45 +1130,7 @@ class SBM_Employee_List_Table extends WP_List_Table {
     /**
      * Render Company filter dropdown next to bulk actions.
      */
-    protected function extra_tablenav( $which ) {
-        if ( 'top' === $which ) {
-            $current_company = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
-            
-            global $wpdb;
-            $companies = $wpdb->get_col( "
-                SELECT DISTINCT meta_value 
-                FROM {$wpdb->usermeta} 
-                WHERE meta_key = 'sbm_company' AND meta_value != ''
-            " );
-            
-            if ( ! in_array( 'S-Chem', $companies ) ) {
-                $companies[] = 'S-Chem';
-            }
-            sort( $companies );
-            
-            echo '<div class="alignleft actions bulkactions">';
-            echo '<select name="company_filter" id="company_filter" style="float:none; margin-right: 6px; vertical-align: top;">';
-            echo '<option value="">' . esc_html__( 'All Companies', 'safety-badges-manager' ) . '</option>';
-            foreach ( $companies as $company ) {
-                echo '<option value="' . esc_attr( $company ) . '" ' . selected( $current_company, $company, false ) . '>' . esc_html( $company ) . '</option>';
-            }
-            echo '</select>';
 
-            // Preserve other query variables when filtering
-            if ( isset( $_GET['status_filter'] ) ) {
-                echo '<input type="hidden" name="status_filter" value="' . esc_attr( sanitize_text_field( $_GET['status_filter'] ) ) . '" />';
-            }
-            if ( isset( $_GET['orderby'] ) ) {
-                echo '<input type="hidden" name="orderby" value="' . esc_attr( sanitize_text_field( $_GET['orderby'] ) ) . '" />';
-            }
-            if ( isset( $_GET['order'] ) ) {
-                echo '<input type="hidden" name="order" value="' . esc_attr( sanitize_text_field( $_GET['order'] ) ) . '" />';
-            }
-            
-            submit_button( esc_html__( 'Filter', 'safety-badges-manager' ), 'button', 'filter_action', false, array( 'style' => 'vertical-align: top;' ) );
-            echo '</div>';
-        }
-    }
 
     public function prepare_items() {
         // Execute bulk actions if requested
@@ -914,26 +1147,35 @@ class SBM_Employee_List_Table extends WP_List_Table {
         $current_page = $this->get_pagenum();
         $offset       = ( $current_page - 1 ) * $per_page;
 
-        $search        = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
-        $status_filter = isset( $_GET['status_filter'] ) ? sanitize_text_field( $_GET['status_filter'] ) : '';
+        $search         = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+        $status_filter  = isset( $_GET['status_filter'] ) ? sanitize_text_field( $_GET['status_filter'] ) : '';
         $company_filter = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
-        $orderby       = isset( $_GET['orderby'] ) ? sanitize_text_field( $_GET['orderby'] ) : 'display_name';
-        $order         = isset( $_GET['order'] ) ? sanitize_text_field( $_GET['order'] ) : 'ASC';
+        $quiz_filter    = isset( $_GET['quiz_filter'] ) ? intval( $_GET['quiz_filter'] ) : 0;
+        $start_date     = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
+        $end_date       = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+        $orderby        = isset( $_GET['orderby'] ) ? sanitize_text_field( $_GET['orderby'] ) : 'display_name';
+        $order          = isset( $_GET['order'] ) ? sanitize_text_field( $_GET['order'] ) : 'ASC';
 
         $total_items = $this->db->get_employee_records_count( array(
-            'search'        => $search,
-            'status_filter' => $status_filter,
-            'company_filter'=> $company_filter
+            'search'         => $search,
+            'status_filter'  => $status_filter,
+            'company_filter' => $company_filter,
+            'quiz_filter'    => $quiz_filter,
+            'start_date'     => $start_date,
+            'end_date'       => $end_date
         ) );
 
         $items = $this->db->get_employee_records( array(
-            'search'        => $search,
-            'status_filter' => $status_filter,
-            'company_filter'=> $company_filter,
-            'orderby'       => $orderby,
-            'order'         => $order,
-            'number'        => $per_page,
-            'offset'        => $offset
+            'search'         => $search,
+            'status_filter'  => $status_filter,
+            'company_filter' => $company_filter,
+            'quiz_filter'    => $quiz_filter,
+            'start_date'     => $start_date,
+            'end_date'       => $end_date,
+            'orderby'        => $orderby,
+            'order'          => $order,
+            'number'         => $per_page,
+            'offset'         => $offset
         ) );
 
         $this->items = $items;

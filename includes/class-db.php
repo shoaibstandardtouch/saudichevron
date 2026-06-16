@@ -143,13 +143,16 @@ class SBM_DB {
         global $wpdb;
 
         $defaults = array(
-            'search'        => '',
-            'status_filter' => '', // 'active', 'expired', 'none', 'failed'
-            'company_filter'=> '',
-            'orderby'       => 'display_name',
-            'order'         => 'ASC',
-            'number'        => 20,
-            'offset'        => 0
+            'search'         => '',
+            'status_filter'  => '', // 'active', 'expired', 'none', 'failed'
+            'company_filter' => '',
+            'quiz_filter'    => 0,
+            'start_date'     => '',
+            'end_date'       => '',
+            'orderby'        => 'display_name',
+            'order'          => 'ASC',
+            'number'         => 20,
+            'offset'         => 0
         );
 
         $args = wp_parse_args( $args, $defaults );
@@ -205,6 +208,18 @@ class SBM_DB {
             } else {
                 $where[] = $wpdb->prepare( "um_comp.meta_value = %s", $args['company_filter'] );
             }
+        }
+
+        if ( ! empty( $args['quiz_filter'] ) ) {
+            $where[] = $wpdb->prepare( "b.form_id = %d", $args['quiz_filter'] );
+        }
+
+        if ( ! empty( $args['start_date'] ) ) {
+            $where[] = $wpdb->prepare( "b.pass_date >= %s", $args['start_date'] . ' 00:00:00' );
+        }
+
+        if ( ! empty( $args['end_date'] ) ) {
+            $where[] = $wpdb->prepare( "b.pass_date <= %s", $args['end_date'] . ' 23:59:59' );
         }
 
         if ( ! empty( $where ) ) {
@@ -273,6 +288,18 @@ class SBM_DB {
             } else {
                 $where[] = $wpdb->prepare( "um_comp.meta_value = %s", $args['company_filter'] );
             }
+        }
+
+        if ( ! empty( $args['quiz_filter'] ) ) {
+            $where[] = $wpdb->prepare( "b.form_id = %d", $args['quiz_filter'] );
+        }
+
+        if ( ! empty( $args['start_date'] ) ) {
+            $where[] = $wpdb->prepare( "b.pass_date >= %s", $args['start_date'] . ' 00:00:00' );
+        }
+
+        if ( ! empty( $args['end_date'] ) ) {
+            $where[] = $wpdb->prepare( "b.pass_date <= %s", $args['end_date'] . ' 23:59:59' );
         }
 
         if ( ! empty( $where ) ) {
