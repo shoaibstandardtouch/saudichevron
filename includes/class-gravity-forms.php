@@ -53,6 +53,9 @@ class SBM_Gravity_Forms {
         // Filter user data before creating account to automate credentials
         add_filter( 'gform_user_registration_user_data', array( $this, 'customize_user_registration_data' ), 10, 4 );
 
+        // Hook to correct user display name after registration completes
+        add_action( 'gform_user_registered', array( $this, 'correct_user_display_name' ), 10, 4 );
+
         // Frontend script injection for dynamic prefilling as the user types
         add_filter( 'gform_pre_render', array( $this, 'inject_dynamic_email_script' ) );
     }
@@ -189,6 +192,28 @@ class SBM_Gravity_Forms {
         }
         if ( ! $user_id ) {
             return; // Only registered users receive badges
+        }
+
+        // Ensure user's display name and first name are corrected based on the Name field (excluding Company Name)
+        $display_name = $this->get_field_value_by_parameter( $form, $entry, 'sbm_name' );
+        if ( empty( $display_name ) ) {
+            foreach ( $form['fields'] as $field ) {
+                $lbl = strtolower( $field->label );
+                if ( strpos( $lbl, 'name' ) !== false && strpos( $lbl, 'company' ) === false ) {
+                    $display_name = rgar( $entry, (string) $field->id );
+                    break;
+                }
+            }
+        }
+        if ( ! empty( $display_name ) ) {
+            $user = get_userdata( $user_id );
+            if ( $user && $user->display_name !== $display_name ) {
+                wp_update_user( array(
+                    'ID'           => $user_id,
+                    'display_name' => $display_name,
+                    'first_name'   => $display_name,
+                ) );
+            }
         }
 
         // Auto-save user metadata if it's missing (fallback security with label search support)
@@ -476,7 +501,8 @@ class SBM_Gravity_Forms {
         if ( empty( $display_name ) ) {
             // Search by label fallback
             foreach ( $form['fields'] as $field ) {
-                if ( strpos( strtolower( $field->label ), 'name' ) !== false ) {
+                $lbl = strtolower( $field->label );
+                if ( strpos( $lbl, 'name' ) !== false && strpos( $lbl, 'company' ) === false ) {
                     $display_name = rgar( $entry, (string) $field->id );
                     break;
                 }
@@ -567,5 +593,36 @@ class SBM_Gravity_Forms {
         }
 
         return $form;
+    }
+
+    /**
+     * Correct user display name and first name after registration completes.
+     */
+    public function correct_user_display_name( $user_id, $feed, $entry, $user_data ) {
+        $form = GFAPI::get_form( $entry['form_id'] );
+        if ( ! $form ) {
+            return;
+        }
+
+        // Get Name value
+        $display_name = $this->get_field_value_by_parameter( $form, $entry, 'sbm_name' );
+        if ( empty( $display_name ) ) {
+            // Search by label fallback (excluding Company Name)
+            foreach ( $form['fields'] as $field ) {
+                $lbl = strtolower( $field->label );
+                if ( strpos( $lbl, 'name' ) !== false && strpos( $lbl, 'company' ) === false ) {
+                    $display_name = rgar( $entry, (string) $field->id );
+                    break;
+                }
+            }
+        }
+
+        if ( ! empty( $display_name ) ) {
+            wp_update_user( array(
+                'ID'           => $user_id,
+                'display_name' => $display_name,
+                'first_name'   => $display_name,
+            ) );
+        }
     }
 }
