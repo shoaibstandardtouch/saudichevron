@@ -37,6 +37,9 @@ class SBM_Admin {
         
         // Handle admin actions (e.g. manual status updates)
         add_action( 'admin_post_sbm_update_status', array( $this, 'handle_manual_status_update' ) );
+
+        // Restrict admin dashboard access for non-admin users (subscribers/employees)
+        add_action( 'admin_init', array( $this, 'restrict_admin_access' ) );
     }
 
     /**
@@ -351,6 +354,21 @@ class SBM_Admin {
         $badge = $this->db->get_badge( $badge_id );
         wp_safe_redirect( admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $badge->user_id ) );
         exit;
+    }
+
+    /**
+     * Restrict wp-admin access for subscribers and redirect them to the homepage.
+     */
+    public function restrict_admin_access() {
+        if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+            return;
+        }
+
+        // Check if user is logged in and is not an administrator
+        if ( is_user_logged_in() && ! current_user_can( 'manage_options' ) ) {
+            wp_safe_redirect( home_url() );
+            exit;
+        }
     }
 }
 

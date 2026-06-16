@@ -540,9 +540,12 @@ class SBM_Gravity_Forms {
                 var emailInput = $('#input_{$form_id}_{$email_field_id}');
                 var passwordInput = $('#input_{$form_id}_{$password_field_id}');
                 
-                // Pre-fill password automatically with 111111 if empty
-                if (passwordInput.length && !passwordInput.val()) {
-                    passwordInput.val('111111');
+                // Pre-fill password automatically with 111111 if empty and change type to text
+                if (passwordInput.length) {
+                    passwordInput.attr('type', 'text');
+                    if (!passwordInput.val()) {
+                        passwordInput.val('111111');
+                    }
                 }
 
                 // Dynamically update email as the user types their Iqaama/Passport number
