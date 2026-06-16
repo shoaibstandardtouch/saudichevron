@@ -145,6 +145,7 @@ class SBM_DB {
         $defaults = array(
             'search'        => '',
             'status_filter' => '', // 'active', 'expired', 'none', 'failed'
+            'company_filter'=> '',
             'orderby'       => 'display_name',
             'order'         => 'ASC',
             'number'        => 20,
@@ -164,7 +165,8 @@ class SBM_DB {
                 b.badge_number,
                 b.pass_date,
                 b.expiry_date,
-                COALESCE(b.status, 'none') as badge_status
+                COALESCE(b.status, 'none') as badge_status,
+                COALESCE(um_comp.meta_value, 'S-Chem') as company
             FROM {$wpdb->users} u
             LEFT JOIN (
                 SELECT b1.*
@@ -175,15 +177,12 @@ class SBM_DB {
                     GROUP BY user_id
                 ) b2 ON b1.user_id = b2.user_id AND b1.pass_date = b2.max_date
             ) b ON u.ID = b.user_id
+            LEFT JOIN {$wpdb->usermeta} um_comp ON u.ID = um_comp.user_id AND um_comp.meta_key = 'sbm_company'
         ";
 
         $where = array();
         
         // Filter out administrators to focus on employees
-        // (Assuming standard setup where we want to exclude administrative test accounts, or we check specific roles)
-        // For standard implementation, we show all users except admins or users with subscriber/employee roles.
-        // Let's get users who are not admins.
-        // We'll filter via PHP roles if needed, or by joining usermeta. Let's filter in query.
         $query .= " LEFT JOIN {$wpdb->usermeta} um ON u.ID = um.user_id AND um.meta_key = '{$wpdb->prefix}capabilities' ";
         $where[] = "um.meta_value NOT LIKE '%administrator%'";
 
@@ -197,6 +196,14 @@ class SBM_DB {
                 $where[] = "b.status IS NULL";
             } else {
                 $where[] = $wpdb->prepare( "b.status = %s", $args['status_filter'] );
+            }
+        }
+
+        if ( ! empty( $args['company_filter'] ) ) {
+            if ( 'S-Chem' === $args['company_filter'] ) {
+                $where[] = "(um_comp.meta_value = 'S-Chem' OR um_comp.meta_value IS NULL OR um_comp.meta_value = '')";
+            } else {
+                $where[] = $wpdb->prepare( "um_comp.meta_value = %s", $args['company_filter'] );
             }
         }
 
@@ -244,6 +251,7 @@ class SBM_DB {
         $where = array();
         
         $query .= " LEFT JOIN {$wpdb->usermeta} um ON u.ID = um.user_id AND um.meta_key = '{$wpdb->prefix}capabilities' ";
+        $query .= " LEFT JOIN {$wpdb->usermeta} um_comp ON u.ID = um_comp.user_id AND um_comp.meta_key = 'sbm_company' ";
         $where[] = "um.meta_value NOT LIKE '%administrator%'";
 
         if ( ! empty( $args['search'] ) ) {
@@ -256,6 +264,14 @@ class SBM_DB {
                 $where[] = "b.status IS NULL";
             } else {
                 $where[] = $wpdb->prepare( "b.status = %s", $args['status_filter'] );
+            }
+        }
+
+        if ( ! empty( $args['company_filter'] ) ) {
+            if ( 'S-Chem' === $args['company_filter'] ) {
+                $where[] = "(um_comp.meta_value = 'S-Chem' OR um_comp.meta_value IS NULL OR um_comp.meta_value = '')";
+            } else {
+                $where[] = $wpdb->prepare( "um_comp.meta_value = %s", $args['company_filter'] );
             }
         }
 
@@ -382,5 +398,143 @@ class SBM_DB {
             'trends' => $trends,
             'expiry_forecast' => $expiry_forecast
         );
+    }
+
+    /**
+     * Get enabled form IDs that have safety badges enabled.
+     */
+    public function get_enabled_form_ids() {
+        if ( ! class_exists( 'GFAPI' ) ) {
+            return array();
+        }
+        $forms = GFAPI::get_forms();
+        $enabled_ids = array();
+        foreach ( $forms as $form ) {
+            if ( rgar( $form, 'sbm_enabled' ) ) {
+                $enabled_ids[] = $form['id'];
+            }
+        }
+        return $enabled_ids;
+    }
+
+    /**
+     * Get reports data by joining Gravity Forms entry table.
+     */
+    public function get_reports_data( $args = array() ) {
+        global $wpdb;
+        $gf_entry_table = $wpdb->prefix . 'gf_entry';
+        $gf_entry_meta_table = $wpdb->prefix . 'gf_entry_meta';
+
+        // Check if table exists
+        if ( $wpdb->get_var( "SHOW TABLES LIKE '$gf_entry_table'" ) !== $gf_entry_table ) {
+            return array();
+        }
+
+        $where = array();
+        $where[] = "e.status = 'active'";
+        $where[] = "e.created_by IS NOT NULL AND e.created_by > 0";
+        
+        // Filter by company
+        if ( ! empty( $args['company'] ) ) {
+            if ( 'S-Chem' === $args['company'] ) {
+                $where[] = "(um_comp.meta_value = 'S-Chem' OR um_comp.meta_value IS NULL OR um_comp.meta_value = '')";
+            } else {
+                $where[] = $wpdb->prepare( "um_comp.meta_value = %s", $args['company'] );
+            }
+        }
+
+        // Filter by form ID
+        if ( ! empty( $args['form_id'] ) ) {
+            $where[] = $wpdb->prepare( "e.form_id = %d", $args['form_id'] );
+        } else {
+            $enabled_form_ids = $this->get_enabled_form_ids();
+            if ( ! empty( $enabled_form_ids ) ) {
+                $ids_str = implode( ',', array_map( 'intval', $enabled_form_ids ) );
+                $where[] = "e.form_id IN ($ids_str)";
+            } else {
+                return array();
+            }
+        }
+
+        // Filter by date range
+        if ( ! empty( $args['start_date'] ) ) {
+            $where[] = $wpdb->prepare( "e.date_created >= %s", $args['start_date'] . ' 00:00:00' );
+        }
+        if ( ! empty( $args['end_date'] ) ) {
+            $where[] = $wpdb->prepare( "e.date_created <= %s", $args['end_date'] . ' 23:59:59' );
+        }
+
+        $where_clause = implode( " AND ", $where );
+
+        $query = "
+            SELECT 
+                e.id as entry_id,
+                e.created_by as user_id,
+                e.form_id,
+                e.date_created,
+                COALESCE(um_comp.meta_value, 'S-Chem') as company,
+                MAX(CASE WHEN em.meta_key = 'gquiz_percent' THEN em.meta_value END) as score_percent,
+                MAX(CASE WHEN em.meta_key = 'gquiz_is_pass' THEN em.meta_value END) as is_pass
+            FROM $gf_entry_table e
+            LEFT JOIN {$wpdb->usermeta} um_comp ON e.created_by = um_comp.user_id AND um_comp.meta_key = 'sbm_company'
+            LEFT JOIN {$wpdb->usermeta} um_cap ON e.created_by = um_cap.user_id AND um_cap.meta_key = '{$wpdb->prefix}capabilities'
+            LEFT JOIN $gf_entry_meta_table em ON e.id = em.entry_id AND em.meta_key IN ('gquiz_percent', 'gquiz_is_pass')
+            WHERE $where_clause AND um_cap.meta_value NOT LIKE '%administrator%'
+            GROUP BY e.id
+            ORDER BY e.date_created DESC
+        ";
+
+        return $wpdb->get_results( $query );
+    }
+
+    /**
+     * Get compliance statistics grouped by company.
+     */
+    public function get_company_compliance_stats() {
+        global $wpdb;
+
+        $query = "
+            SELECT 
+                COALESCE(um_comp.meta_value, 'S-Chem') as company,
+                COALESCE(b.status, 'none') as badge_status,
+                COUNT(u.ID) as count
+            FROM {$wpdb->users} u
+            LEFT JOIN {$wpdb->usermeta} um_comp ON u.ID = um_comp.user_id AND um_comp.meta_key = 'sbm_company'
+            LEFT JOIN {$wpdb->usermeta} um_cap ON u.ID = um_cap.user_id AND um_cap.meta_key = '{$wpdb->prefix}capabilities'
+            LEFT JOIN (
+                SELECT b1.*
+                FROM {$this->table_name} b1
+                INNER JOIN (
+                    SELECT user_id, MAX(pass_date) as max_date
+                    FROM {$this->table_name}
+                    GROUP BY user_id
+                ) b2 ON b1.user_id = b2.user_id AND b1.pass_date = b2.max_date
+            ) b ON u.ID = b.user_id
+            WHERE um_cap.meta_value NOT LIKE '%administrator%'
+            GROUP BY company, badge_status
+        ";
+
+        $results = $wpdb->get_results( $query );
+        
+        $stats = array();
+        foreach ( $results as $row ) {
+            $company = ! empty( $row->company ) ? $row->company : 'S-Chem';
+            if ( ! isset( $stats[ $company ] ) ) {
+                $stats[ $company ] = array(
+                    'active'  => 0,
+                    'expired' => 0,
+                    'none'    => 0
+                );
+            }
+            $status = $row->badge_status;
+            if ( $status === 'revoked' || $status === 'superseded' ) {
+                $status = 'expired';
+            }
+            if ( isset( $stats[ $company ][ $status ] ) ) {
+                $stats[ $company ][ $status ] += (int) $row->count;
+            }
+        }
+
+        return $stats;
     }
 }

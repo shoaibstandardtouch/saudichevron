@@ -76,6 +76,15 @@ class SBM_Admin {
             'safety-employees',
             array( $this, 'render_employees_page' )
         );
+
+        add_submenu_page(
+            'safety-training',
+            esc_html__( 'Reports', 'safety-badges-manager' ),
+            esc_html__( 'Reports', 'safety-badges-manager' ),
+            'manage_options',
+            'safety-reports',
+            array( $this, 'render_reports_page' )
+        );
     }
 
     /**
@@ -83,7 +92,7 @@ class SBM_Admin {
      */
     public function enqueue_admin_assets( $hook ) {
         // Enqueue only on our plugin pages
-        if ( strpos( $hook, 'safety-training' ) === false && strpos( $hook, 'safety-employees' ) === false ) {
+        if ( strpos( $hook, 'safety-training' ) === false && strpos( $hook, 'safety-employees' ) === false && strpos( $hook, 'safety-reports' ) === false ) {
             return;
         }
 
@@ -186,6 +195,272 @@ class SBM_Admin {
                 $list_table->display();
                 ?>
             </form>
+        </div>
+        <?php
+    }
+
+
+    /**
+     * Render Safety Training Reports Page with advanced filters and interactive charts.
+     */
+    public function render_reports_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        // Get filter inputs
+        $company    = isset( $_GET['company'] ) ? sanitize_text_field( $_GET['company'] ) : '';
+        $form_id    = isset( $_GET['form_id'] ) ? intval( $_GET['form_id'] ) : 0;
+        $start_date = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
+        $end_date   = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+
+        // Fetch reports data
+        $entries = $this->db->get_reports_data( array(
+            'company'    => $company,
+            'form_id'    => $form_id,
+            'start_date' => $start_date,
+            'end_date'   => $end_date
+        ) );
+
+        // Fetch unique companies for dropdown list
+        global $wpdb;
+        $companies = $wpdb->get_col( "
+            SELECT DISTINCT meta_value 
+            FROM {$wpdb->usermeta} 
+            WHERE meta_key = 'sbm_company' AND meta_value != ''
+        " );
+        if ( ! in_array( 'S-Chem', $companies ) ) {
+            $companies[] = 'S-Chem';
+        }
+        sort( $companies );
+
+        // Fetch safety quiz forms
+        $safety_forms = array();
+        if ( class_exists( 'GFAPI' ) ) {
+            $forms = GFAPI::get_forms();
+            foreach ( $forms as $f ) {
+                if ( rgar( $f, 'sbm_enabled' ) ) {
+                    $safety_forms[] = $f;
+                }
+            }
+        }
+
+        // Calculate KPI Metrics
+        $total_attempts = count( $entries );
+        $unique_users   = array();
+        $passed_users   = array();
+        $passed_attempts = 0;
+        $total_score    = 0;
+        $score_count    = 0;
+
+        foreach ( $entries as $entry ) {
+            $u_id = $entry->user_id;
+            if ( $u_id ) {
+                $unique_users[ $u_id ] = true;
+                if ( $entry->is_pass == '1' ) {
+                    $passed_users[ $u_id ] = true;
+                }
+            }
+            if ( $entry->is_pass == '1' ) {
+                $passed_attempts++;
+            }
+            if ( $entry->score_percent !== null ) {
+                $total_score += floatval( $entry->score_percent );
+                $score_count++;
+            }
+        }
+
+        $candidates_appeared = count( $unique_users );
+        $candidates_passed   = count( $passed_users );
+        $candidates_failed   = max( 0, $candidates_appeared - $candidates_passed );
+        $failed_attempts     = max( 0, $total_attempts - $passed_attempts );
+
+        $pass_rate = $candidates_appeared > 0 ? round( ( $candidates_passed / $candidates_appeared ) * 100, 1 ) : 0;
+        $average_score = $score_count > 0 ? round( $total_score / $score_count, 1 ) : 0;
+
+        // Group Monthly Trends
+        $monthly_data = array();
+        foreach ( $entries as $entry ) {
+            $month_key = date( 'Y-m', strtotime( $entry->date_created ) );
+            if ( ! isset( $monthly_data[ $month_key ] ) ) {
+                $monthly_data[ $month_key ] = array(
+                    'label'    => date( 'F Y', strtotime( $entry->date_created ) ),
+                    'appeared' => 0,
+                    'passed'   => 0
+                );
+            }
+            $monthly_data[ $month_key ]['appeared']++;
+            if ( $entry->is_pass == '1' ) {
+                $monthly_data[ $month_key ]['passed']++;
+            }
+        }
+        ksort( $monthly_data );
+        $trend_labels   = array();
+        $trend_appeared = array();
+        $trend_passed   = array();
+        foreach ( $monthly_data as $m_data ) {
+            $trend_labels[]   = $m_data['label'];
+            $trend_appeared[] = $m_data['appeared'];
+            $trend_passed[]   = $m_data['passed'];
+        }
+
+        // Group quiz average scores
+        $quiz_scores = array();
+        foreach ( $entries as $entry ) {
+            $f_id = $entry->form_id;
+            if ( ! isset( $quiz_scores[ $f_id ] ) ) {
+                $form_title = 'Form #' . $f_id;
+                if ( class_exists( 'GFAPI' ) ) {
+                    $form_info = GFAPI::get_form( $f_id );
+                    if ( $form_info ) {
+                        $form_title = $form_info['title'];
+                    }
+                }
+                $quiz_scores[ $f_id ] = array(
+                    'title'       => $form_title,
+                    'total_score' => 0,
+                    'count'       => 0
+                );
+            }
+            if ( $entry->score_percent !== null ) {
+                $quiz_scores[ $f_id ]['total_score'] += floatval( $entry->score_percent );
+                $quiz_scores[ $f_id ]['count']++;
+            }
+        }
+
+        $quiz_labels   = array();
+        $quiz_averages = array();
+        foreach ( $quiz_scores as $q_score ) {
+            if ( $q_score['count'] > 0 ) {
+                $quiz_labels[]   = $q_score['title'];
+                $quiz_averages[] = round( $q_score['total_score'] / $q_score['count'], 1 );
+            }
+        }
+
+        // Get company compliance stats
+        $company_compliance = $this->db->get_company_compliance_stats();
+        ?>
+        <div class="wrap sbm-dashboard-wrap sbm-reports-wrap">
+            <h1 class="wp-heading-inline"><?php esc_html_e( 'HSE Safety Training Reports', 'safety-badges-manager' ); ?></h1>
+            <hr class="wp-header-end">
+
+            <!-- Filter Card -->
+            <div class="sbm-card sbm-filter-card" style="margin-top: 20px; padding: 20px 24px;">
+                <form method="get" action="" class="sbm-reports-filter-form">
+                    <input type="hidden" name="page" value="safety-reports" />
+                    <div class="sbm-filter-grid">
+                        <div class="filter-col">
+                            <label for="company"><?php esc_html_e( 'Contracting Company', 'safety-badges-manager' ); ?></label>
+                            <select name="company" id="company">
+                                <option value=""><?php esc_html_e( 'All Companies', 'safety-badges-manager' ); ?></option>
+                                <?php foreach ( $companies as $comp ) : ?>
+                                    <option value="<?php echo esc_attr( $comp ); ?>" <?php selected( $company, $comp ); ?>><?php echo esc_html( $comp ); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-col">
+                            <label for="form_id"><?php esc_html_e( 'Safety Quiz', 'safety-badges-manager' ); ?></label>
+                            <select name="form_id" id="form_id">
+                                <option value=""><?php esc_html_e( 'All Quizzes', 'safety-badges-manager' ); ?></option>
+                                <?php foreach ( $safety_forms as $f ) : ?>
+                                    <option value="<?php echo esc_attr( $f['id'] ); ?>" <?php selected( $form_id, $f['id'] ); ?>><?php echo esc_html( $f['title'] ); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="filter-col">
+                            <label for="start_date"><?php esc_html_e( 'Start Date', 'safety-badges-manager' ); ?></label>
+                            <input type="date" name="start_date" id="start_date" value="<?php echo esc_attr( $start_date ); ?>" />
+                        </div>
+                        <div class="filter-col">
+                            <label for="end_date"><?php esc_html_e( 'End Date', 'safety-badges-manager' ); ?></label>
+                            <input type="date" name="end_date" id="end_date" value="<?php echo esc_attr( $end_date ); ?>" />
+                        </div>
+                    </div>
+                    <div class="sbm-filter-actions">
+                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filters', 'safety-badges-manager' ); ?></button>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-reports' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Reset Filters', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Stats KPI Cards -->
+            <div class="sbm-grid sbm-stats-cards sbm-reports-kpi" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 25px;">
+                <div class="sbm-card card-active">
+                    <h3><?php esc_html_e( 'Exams Taken', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $total_attempts ); ?></p>
+                    <span class="kpi-subtext"><?php esc_html_e( 'Total quiz attempts', 'safety-badges-manager' ); ?></span>
+                </div>
+                <div class="sbm-card card-pending" style="border-left-color: #2563eb;">
+                    <h3><?php esc_html_e( 'Students Appeared', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $candidates_appeared ); ?></p>
+                    <span class="kpi-subtext"><?php esc_html_e( 'Unique candidates', 'safety-badges-manager' ); ?></span>
+                </div>
+                <div class="sbm-card card-active" style="border-left-color: #059669;">
+                    <h3><?php esc_html_e( 'Students Passed', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $candidates_passed ); ?></p>
+                    <span class="kpi-subtext"><?php esc_html_e( 'Unique certified', 'safety-badges-manager' ); ?></span>
+                </div>
+                <div class="sbm-card card-active" style="border-left-color: #8b5cf6;">
+                    <h3><?php esc_html_e( 'Passing Rate', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $pass_rate ); ?>%</p>
+                    <span class="kpi-subtext"><?php esc_html_e( 'Certified vs appeared', 'safety-badges-manager' ); ?></span>
+                </div>
+                <div class="sbm-card card-expired" style="border-left-color: #f59e0b;">
+                    <h3><?php esc_html_e( 'Average Score', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $average_score ); ?>%</p>
+                    <span class="kpi-subtext"><?php esc_html_e( 'All graded attempts', 'safety-badges-manager' ); ?></span>
+                </div>
+            </div>
+
+            <!-- Charts Container -->
+            <div class="sbm-grid sbm-charts-grid" style="margin-top: 25px;">
+                <div class="sbm-card chart-card">
+                    <h3><?php esc_html_e( 'Quiz Attempts Pass/Fail Ratio', 'safety-badges-manager' ); ?></h3>
+                    <div class="chart-container">
+                        <canvas id="sbmReportsDoughnutChart"></canvas>
+                    </div>
+                </div>
+                <div class="sbm-card chart-card">
+                    <h3><?php esc_html_e( 'Attempts & Pass Trends', 'safety-badges-manager' ); ?></h3>
+                    <div class="chart-container">
+                        <canvas id="sbmReportsTrendsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sbm-grid sbm-charts-grid">
+                <div class="sbm-card chart-card">
+                    <h3><?php esc_html_e( 'Average Score by Quiz', 'safety-badges-manager' ); ?></h3>
+                    <div class="chart-container">
+                        <canvas id="sbmReportsScoresChart"></canvas>
+                    </div>
+                </div>
+                <div class="sbm-card chart-card">
+                    <h3><?php esc_html_e( 'Company Compliance Breakdown', 'safety-badges-manager' ); ?></h3>
+                    <div class="chart-container">
+                        <canvas id="sbmReportsCompanyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <script type="text/javascript">
+                var sbmReportsChartData = {
+                    doughnut: {
+                        passed: <?php echo intval( $passed_attempts ); ?>,
+                        failed: <?php echo intval( $failed_attempts ); ?>
+                    },
+                    trends: {
+                        labels: <?php echo wp_json_encode( $trend_labels ); ?>,
+                        appeared: <?php echo wp_json_encode( $trend_appeared ); ?>,
+                        passed: <?php echo wp_json_encode( $trend_passed ); ?>
+                    },
+                    quizScores: {
+                        labels: <?php echo wp_json_encode( $quiz_labels ); ?>,
+                        averages: <?php echo wp_json_encode( $quiz_averages ); ?>
+                    },
+                    companyCompliance: <?php echo wp_json_encode( $company_compliance ); ?>
+                };
+            </script>
         </div>
         <?php
     }
@@ -537,38 +812,41 @@ class SBM_Employee_List_Table extends WP_List_Table {
      */
     protected function get_views() {
         $current = isset( $_GET['status_filter'] ) ? sanitize_text_field( $_GET['status_filter'] ) : '';
+        $company = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
         
+        $company_arg = ! empty( $company ) ? '&company_filter=' . urlencode( $company ) : '';
+
         // Count totals for badges
-        $active_count  = $this->db->get_employee_records_count( array( 'status_filter' => 'active' ) );
-        $expired_count = $this->db->get_employee_records_count( array( 'status_filter' => 'expired' ) );
-        $none_count    = $this->db->get_employee_records_count( array( 'status_filter' => 'none' ) );
-        $all_count     = $this->db->get_employee_records_count();
+        $active_count  = $this->db->get_employee_records_count( array( 'status_filter' => 'active', 'company_filter' => $company ) );
+        $expired_count = $this->db->get_employee_records_count( array( 'status_filter' => 'expired', 'company_filter' => $company ) );
+        $none_count    = $this->db->get_employee_records_count( array( 'status_filter' => 'none', 'company_filter' => $company ) );
+        $all_count     = $this->db->get_employee_records_count( array( 'company_filter' => $company ) );
 
         $views = array(
             'all' => sprintf(
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
-                admin_url( 'admin.php?page=safety-employees' ),
+                admin_url( 'admin.php?page=safety-employees' . $company_arg ),
                 empty( $current ) ? 'current' : '',
                 esc_html__( 'All Employees', 'safety-badges-manager' ),
                 $all_count
             ),
             'active' => sprintf(
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
-                admin_url( 'admin.php?page=safety-employees&status_filter=active' ),
+                admin_url( 'admin.php?page=safety-employees&status_filter=active' . $company_arg ),
                 'active' === $current ? 'current' : '',
                 esc_html__( 'Active / Compliant', 'safety-badges-manager' ),
                 $active_count
             ),
             'expired' => sprintf(
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
-                admin_url( 'admin.php?page=safety-employees&status_filter=expired' ),
+                admin_url( 'admin.php?page=safety-employees&status_filter=expired' . $company_arg ),
                 'expired' === $current ? 'current' : '',
                 esc_html__( 'Expired', 'safety-badges-manager' ),
                 $expired_count
             ),
             'none' => sprintf(
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
-                admin_url( 'admin.php?page=safety-employees&status_filter=none' ),
+                admin_url( 'admin.php?page=safety-employees&status_filter=none' . $company_arg ),
                 'none' === $current ? 'current' : '',
                 esc_html__( 'Untrained', 'safety-badges-manager' ),
                 $none_count
@@ -576,6 +854,38 @@ class SBM_Employee_List_Table extends WP_List_Table {
         );
 
         return $views;
+    }
+
+    /**
+     * Render Company filter dropdown next to bulk actions.
+     */
+    protected function extra_tablenav( $which ) {
+        if ( 'top' === $which ) {
+            $current_company = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
+            
+            global $wpdb;
+            $companies = $wpdb->get_col( "
+                SELECT DISTINCT meta_value 
+                FROM {$wpdb->usermeta} 
+                WHERE meta_key = 'sbm_company' AND meta_value != ''
+            " );
+            
+            if ( ! in_array( 'S-Chem', $companies ) ) {
+                $companies[] = 'S-Chem';
+            }
+            sort( $companies );
+            
+            echo '<div class="alignleft actions bulkactions">';
+            echo '<select name="company_filter" id="company_filter" style="float:none; margin-right: 6px; vertical-align: top;">';
+            echo '<option value="">' . esc_html__( 'All Companies', 'safety-badges-manager' ) . '</option>';
+            foreach ( $companies as $company ) {
+                echo '<option value="' . esc_attr( $company ) . '" ' . selected( $current_company, $company, false ) . '>' . esc_html( $company ) . '</option>';
+            }
+            echo '</select>';
+            
+            submit_button( esc_html__( 'Filter', 'safety-badges-manager' ), 'button', 'filter_action', false, array( 'style' => 'vertical-align: top;' ) );
+            echo '</div>';
+        }
     }
 
     public function prepare_items() {
@@ -595,17 +905,20 @@ class SBM_Employee_List_Table extends WP_List_Table {
 
         $search        = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
         $status_filter = isset( $_GET['status_filter'] ) ? sanitize_text_field( $_GET['status_filter'] ) : '';
+        $company_filter = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
         $orderby       = isset( $_GET['orderby'] ) ? sanitize_text_field( $_GET['orderby'] ) : 'display_name';
         $order         = isset( $_GET['order'] ) ? sanitize_text_field( $_GET['order'] ) : 'ASC';
 
         $total_items = $this->db->get_employee_records_count( array(
             'search'        => $search,
-            'status_filter' => $status_filter
+            'status_filter' => $status_filter,
+            'company_filter'=> $company_filter
         ) );
 
         $items = $this->db->get_employee_records( array(
             'search'        => $search,
             'status_filter' => $status_filter,
+            'company_filter'=> $company_filter,
             'orderby'       => $orderby,
             'order'         => $order,
             'number'        => $per_page,

@@ -167,4 +167,183 @@ jQuery(document).ready(function($) {
             }
         });
     }
+
+    // 4. Reports Charts (Only if sbmReportsChartData is defined)
+    if (typeof sbmReportsChartData !== 'undefined') {
+        // A. Doughnut Chart for Pass/Fail attempts
+        var ctxReportsDoughnut = document.getElementById('sbmReportsDoughnutChart');
+        if (ctxReportsDoughnut) {
+            new Chart(ctxReportsDoughnut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Passed Attempts', 'Failed Attempts'],
+                    datasets: [{
+                        data: [
+                            sbmReportsChartData.doughnut.passed,
+                            sbmReportsChartData.doughnut.failed
+                        ],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderColor: '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // B. Grouped Bar Chart for attempts trends
+        var ctxReportsTrends = document.getElementById('sbmReportsTrendsChart');
+        if (ctxReportsTrends) {
+            new Chart(ctxReportsTrends, {
+                type: 'bar',
+                data: {
+                    labels: sbmReportsChartData.trends.labels,
+                    datasets: [
+                        {
+                            label: 'Total Quiz Attempts',
+                            data: sbmReportsChartData.trends.appeared,
+                            backgroundColor: '#2563eb', // Blue
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Passed Exams',
+                            data: sbmReportsChartData.trends.passed,
+                            backgroundColor: '#10b981', // Green
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { display: false }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: { precision: 0 },
+                            min: 0
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 15 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // C. Horizontal Bar Chart for average scores by quiz
+        var ctxReportsScores = document.getElementById('sbmReportsScoresChart');
+        if (ctxReportsScores) {
+            new Chart(ctxReportsScores, {
+                type: 'bar',
+                data: {
+                    labels: sbmReportsChartData.quizScores.labels,
+                    datasets: [{
+                        label: 'Average Score (%)',
+                        data: sbmReportsChartData.quizScores.averages,
+                        backgroundColor: '#8b5cf6', // Violet
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Makes it horizontal!
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            max: 100,
+                            min: 0,
+                            grid: { color: '#f1f5f9' }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // D. Stacked Bar Chart for Company Compliance
+        var ctxReportsCompany = document.getElementById('sbmReportsCompanyChart');
+        if (ctxReportsCompany) {
+            var companiesList = Object.keys(sbmReportsChartData.companyCompliance);
+            var activeCounts = [];
+            var expiredCounts = [];
+            var noneCounts = [];
+
+            companiesList.forEach(function(comp) {
+                activeCounts.push(sbmReportsChartData.companyCompliance[comp].active || 0);
+                expiredCounts.push(sbmReportsChartData.companyCompliance[comp].expired || 0);
+                noneCounts.push(sbmReportsChartData.companyCompliance[comp].none || 0);
+            });
+
+            new Chart(ctxReportsCompany, {
+                type: 'bar',
+                data: {
+                    labels: companiesList,
+                    datasets: [
+                        {
+                            label: 'Active/Compliant',
+                            data: activeCounts,
+                            backgroundColor: '#10b981', // Green
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Expired / Non-Compliant',
+                            data: expiredCounts,
+                            backgroundColor: '#ef4444', // Red
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Untrained',
+                            data: noneCounts,
+                            backgroundColor: '#94a3b8', // Slate/Grey
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: { precision: 0 },
+                            min: 0
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 15 }
+                        }
+                    }
+                }
+            });
+        }
+    }
 });
