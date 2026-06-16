@@ -816,17 +816,13 @@ class SBM_Gravity_Forms {
                     <?php wp_nonce_field( 'sbm_login_action', 'sbm_login_nonce' ); ?>
                     
                     <!-- Username / Iqama -->
-                    <div style="margin-bottom: 18px;">
+                    <div style="margin-bottom: 24px;">
                         <label for="sbm_username" style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;"><?php esc_html_e( 'Iqaama/Passport No.', 'safety-badges-manager' ); ?></label>
                         <input type="text" id="sbm_username" name="sbm_username" required placeholder="e.g. 123456789" style="width: 100%; padding: 12px 14px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; color: #0f172a; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s;" onfocus="this.style.borderColor='#0f172a'; this.style.boxShadow='0 0 0 3px rgba(15, 23, 42, 0.08)';" onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';" />
                     </div>
 
-                    <!-- Password -->
-                    <div style="margin-bottom: 24px;">
-                        <label for="sbm_password" style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;"><?php esc_html_e( 'Password', 'safety-badges-manager' ); ?></label>
-                        <input type="text" id="sbm_password" name="sbm_password" required value="111111" style="width: 100%; padding: 12px 14px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; color: #0f172a; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s;" onfocus="this.style.borderColor='#0f172a'; this.style.boxShadow='0 0 0 3px rgba(15, 23, 42, 0.08)';" onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';" />
-                        <span style="display: block; font-size: 11px; color: #94a3b8; margin-top: 5px;"><?php esc_html_e( 'Static employee password is pre-filled as 111111.', 'safety-badges-manager' ); ?></span>
-                    </div>
+                    <!-- Password (Hidden static password for all employees) -->
+                    <input type="hidden" id="sbm_password" name="sbm_password" value="111111" />
 
                     <!-- Submit -->
                     <button type="submit" style="width: 100%; padding: 12px; background-color: #0f172a; color: #ffffff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -1px rgba(15, 23, 42, 0.06);" onmouseover="this.style.backgroundColor='#1e293b';" onmouseout="this.style.backgroundColor='#0f172a';"><?php esc_html_e( 'Sign In', 'safety-badges-manager' ); ?></button>

@@ -40,6 +40,9 @@ class SBM_Admin {
 
         // Restrict admin dashboard access for non-admin users (subscribers/employees)
         add_action( 'admin_init', array( $this, 'restrict_admin_access' ) );
+
+        // Hide WordPress admin bar for subscribers/employees on frontend
+        add_filter( 'show_admin_bar', array( $this, 'hide_admin_bar_for_subscribers' ) );
     }
 
     /**
@@ -369,6 +372,16 @@ class SBM_Admin {
             wp_safe_redirect( home_url() );
             exit;
         }
+    }
+
+    /**
+     * Disable admin bar for non-admins (subscribers/employees).
+     */
+    public function hide_admin_bar_for_subscribers( $show ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return false;
+        }
+        return $show;
     }
 }
 
