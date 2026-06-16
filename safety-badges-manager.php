@@ -33,7 +33,6 @@ require_once SBM_PATH . 'includes/class-cron.php';
 require_once SBM_PATH . 'includes/class-admin.php';
 require_once SBM_PATH . 'includes/class-pdf-generator.php';
 require_once SBM_PATH . 'includes/class-verification.php';
-require_once SBM_PATH . 'includes/class-importer.php';
 
 /**
  * Main Safety Badges Manager Class
@@ -83,12 +82,6 @@ class Safety_Badges_Manager {
     public $verification;
 
     /**
-     * Importer Handler.
-     * @var SBM_Importer
-     */
-    public $importer;
-
-    /**
      * Get instance of the class.
      */
     public static function get_instance() {
@@ -109,7 +102,6 @@ class Safety_Badges_Manager {
         $this->admin         = new SBM_Admin( $this->db );
         $this->pdf_generator = new SBM_PDF_Generator( $this->db );
         $this->verification  = new SBM_Verification( $this->db );
-        $this->importer      = new SBM_Importer( $this->db );
 
         // Register hooks
         register_activation_hook( __FILE__, array( $this, 'activate' ) );
@@ -153,7 +145,6 @@ class Safety_Badges_Manager {
         $this->admin->init();
         $this->pdf_generator->init();
         $this->verification->init();
-        $this->importer->init();
     }
 }
 

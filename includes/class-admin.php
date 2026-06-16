@@ -70,15 +70,6 @@ class SBM_Admin {
             'safety-employees',
             array( $this, 'render_employees_page' )
         );
-
-        add_submenu_page(
-            'safety-training',
-            esc_html__( 'Import Employees', 'safety-badges-manager' ),
-            esc_html__( 'Import Employees', 'safety-badges-manager' ),
-            'manage_options',
-            'safety-import',
-            array( $this, 'render_import_page' )
-        );
     }
 
     /**
@@ -86,7 +77,7 @@ class SBM_Admin {
      */
     public function enqueue_admin_assets( $hook ) {
         // Enqueue only on our plugin pages
-        if ( strpos( $hook, 'safety-training' ) === false && strpos( $hook, 'safety-employees' ) === false && strpos( $hook, 'safety-import' ) === false ) {
+        if ( strpos( $hook, 'safety-training' ) === false && strpos( $hook, 'safety-employees' ) === false ) {
             return;
         }
 
@@ -193,12 +184,6 @@ class SBM_Admin {
         <?php
     }
 
-    /**
-     * Render the CSV bulk importer upload page.
-     */
-    public function render_import_page() {
-        SBM()->importer->render_import_page();
-    }
 
     /**
      * Render full test history and details for a single employee.
