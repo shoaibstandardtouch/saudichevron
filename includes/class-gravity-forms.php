@@ -43,6 +43,12 @@ class SBM_Gravity_Forms {
 
         // Clear shuffled session when quiz is completed
         add_action( 'gform_post_submission', array( $this, 'clear_shuffled_session' ), 10, 2 );
+
+        // Dynamic population filters for pre-filling and conditional visibility
+        add_filter( 'gform_field_value_is_logged_in', array( $this, 'populate_is_logged_in' ) );
+        add_filter( 'gform_field_value_sbm_name', array( $this, 'populate_sbm_name' ) );
+        add_filter( 'gform_field_value_sbm_iqama', array( $this, 'populate_sbm_iqama' ) );
+        add_filter( 'gform_field_value_sbm_company', array( $this, 'populate_sbm_company' ) );
     }
 
     /**
@@ -170,8 +176,11 @@ class SBM_Gravity_Forms {
             return;
         }
 
-        // Check if entry was created by a logged-in user (employee)
+        // Check if entry was created by a logged-in user (employee) or a newly registered user
         $user_id = rgar( $entry, 'created_by' );
+        if ( ! $user_id ) {
+            $user_id = get_current_user_id();
+        }
         if ( ! $user_id ) {
             return; // Only registered users receive badges
         }
@@ -352,5 +361,43 @@ class SBM_Gravity_Forms {
         if ( isset( $_SESSION[ $session_key ] ) ) {
             unset( $_SESSION[ $session_key ] );
         }
+    }
+
+    /**
+     * Populate hidden field to check if user is logged in.
+     */
+    public function populate_is_logged_in( $value ) {
+        return is_user_logged_in() ? 'yes' : 'no';
+    }
+
+    /**
+     * Pre-fill employee display name.
+     */
+    public function populate_sbm_name( $value ) {
+        if ( is_user_logged_in() ) {
+            $user = wp_get_current_user();
+            return $user->display_name;
+        }
+        return '';
+    }
+
+    /**
+     * Pre-fill employee Iqama number.
+     */
+    public function populate_sbm_iqama( $value ) {
+        if ( is_user_logged_in() ) {
+            return get_user_meta( get_current_user_id(), 'sbm_iqama', true );
+        }
+        return '';
+    }
+
+    /**
+     * Pre-fill employee Company name.
+     */
+    public function populate_sbm_company( $value ) {
+        if ( is_user_logged_in() ) {
+            return get_user_meta( get_current_user_id(), 'sbm_company', true );
+        }
+        return '';
     }
 }
