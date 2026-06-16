@@ -52,6 +52,9 @@ class SBM_Gravity_Forms {
 
         // Filter user data before creating account to automate credentials
         add_filter( 'gform_user_registration_user_data', array( $this, 'customize_user_registration_data' ), 10, 4 );
+
+        // Frontend script injection for dynamic prefilling as the user types
+        add_filter( 'gform_pre_render', array( $this, 'inject_dynamic_email_script' ) );
     }
 
     /**
@@ -188,10 +191,19 @@ class SBM_Gravity_Forms {
             return; // Only registered users receive badges
         }
 
-        // Auto-save user metadata if it's missing (fallback security)
+        // Auto-save user metadata if it's missing (fallback security with label search support)
         $iqama = get_user_meta( $user_id, 'sbm_iqama', true );
         if ( ! $iqama ) {
             $submitted_iqama = $this->get_field_value_by_parameter( $form, $entry, 'sbm_iqama' );
+            if ( ! $submitted_iqama ) {
+                foreach ( $form['fields'] as $field ) {
+                    $lbl = strtolower( $field->label );
+                    if ( strpos( $lbl, 'iqama' ) !== false || strpos( $lbl, 'iqaama' ) !== false || strpos( $lbl, 'passport' ) !== false ) {
+                        $submitted_iqama = rgar( $entry, (string) $field->id );
+                        break;
+                    }
+                }
+            }
             if ( $submitted_iqama ) {
                 update_user_meta( $user_id, 'sbm_iqama', $submitted_iqama );
             }
@@ -200,6 +212,15 @@ class SBM_Gravity_Forms {
         $company = get_user_meta( $user_id, 'sbm_company', true );
         if ( ! $company ) {
             $submitted_company = $this->get_field_value_by_parameter( $form, $entry, 'sbm_company' );
+            if ( ! $submitted_company ) {
+                foreach ( $form['fields'] as $field ) {
+                    $lbl = strtolower( $field->label );
+                    if ( strpos( $lbl, 'company' ) !== false ) {
+                        $submitted_company = rgar( $entry, (string) $field->id );
+                        break;
+                    }
+                }
+            }
             if ( $submitted_company ) {
                 update_user_meta( $user_id, 'sbm_company', $submitted_company );
             }
@@ -482,5 +503,66 @@ class SBM_Gravity_Forms {
             }
         }
         return '';
+    }
+
+    /**
+     * Inject frontend script to automatically populate Email and Password in real-time as the user types their Iqaama number.
+     */
+    public function inject_dynamic_email_script( $form ) {
+        if ( is_admin() ) {
+            return $form;
+        }
+
+        // Find Iqama/Passport, Email, and Password field IDs
+        $iqama_field_id    = 0;
+        $email_field_id    = 0;
+        $password_field_id = 0;
+
+        if ( ! empty( $form['fields'] ) ) {
+            foreach ( $form['fields'] as $field ) {
+                $label = strtolower( $field->label );
+                if ( strpos( $label, 'iqama' ) !== false || strpos( $label, 'iqaama' ) !== false || strpos( $label, 'passport' ) !== false ) {
+                    $iqama_field_id = $field->id;
+                } elseif ( $field->type === 'email' || strpos( $label, 'email' ) !== false ) {
+                    $email_field_id = $field->id;
+                } elseif ( $field->type === 'password' || strpos( $label, 'password' ) !== false || strpos( $label, 'pass' ) !== false ) {
+                    $password_field_id = $field->id;
+                }
+            }
+        }
+
+        if ( $iqama_field_id ) {
+            $form_id = $form['id'];
+            $script  = "
+            <script type='text/javascript'>
+            jQuery(document).ready(function($) {
+                var iqamaInput = $('#input_{$form_id}_{$iqama_field_id}');
+                var emailInput = $('#input_{$form_id}_{$email_field_id}');
+                var passwordInput = $('#input_{$form_id}_{$password_field_id}');
+                
+                // Pre-fill password automatically with 111111 if empty
+                if (passwordInput.length && !passwordInput.val()) {
+                    passwordInput.val('111111');
+                }
+
+                // Dynamically update email as the user types their Iqaama/Passport number
+                if (iqamaInput.length && emailInput.length) {
+                    var initVal = iqamaInput.val();
+                    if (initVal && !emailInput.val()) {
+                        emailInput.val(initVal.trim() + '@gmail.com');
+                    }
+                    
+                    iqamaInput.on('input change keyup', function() {
+                        var val = $(this).val();
+                        emailInput.val(val ? val.trim() + '@gmail.com' : '');
+                    });
+                }
+            });
+            </script>
+            ";
+            echo $script;
+        }
+
+        return $form;
     }
 }
