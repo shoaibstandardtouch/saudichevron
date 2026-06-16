@@ -308,26 +308,28 @@
 
 /* Reports Specific Styles */
 .sbm-reports-wrap {
-    margin-top: 10px;
+    margin-top: 15px;
 }
 
 .sbm-filter-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    margin-bottom: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    padding: 28px !important;
 }
 
 .sbm-reports-filter-form {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
 }
 
 .sbm-filter-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-gap: 20px;
+    grid-gap: 24px;
 }
 
 @media (max-width: 1024px) {
@@ -345,71 +347,119 @@
 .filter-col {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .filter-col label {
-    display: block !important;
-    font-size: 13px;
-    font-weight: 600;
-    color: #475569;
-    margin-bottom: 6px;
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    margin-bottom: 2px !important;
     float: none !important;
     width: auto !important;
 }
 
+.filter-col label .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #64748b;
+    line-height: 16px;
+}
+
+/* Premium Inputs */
 .filter-col select,
 .filter-col input[type="date"] {
-    padding: 8px 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-size: 14px;
-    color: #334155;
-    background-color: #f8fafc;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    height: 38px !important;
+    padding: 10px 14px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    color: #1e293b !important;
+    background-color: #f8fafc !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    height: 42px !important;
     line-height: 20px !important;
+    transition: all 0.2s ease-in-out !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02) !important;
+}
+
+.filter-col select:hover,
+.filter-col input[type="date"]:hover {
+    border-color: #94a3b8 !important;
+    background-color: #ffffff !important;
 }
 
 .filter-col select:focus,
 .filter-col input[type="date"]:focus {
-    border-color: #2563eb;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    border-color: #0f172a !important;
+    background-color: #ffffff !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08) !important;
 }
 
+/* Action Buttons */
 .sbm-filter-actions {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     justify-content: flex-start;
     align-items: center;
-    margin-top: 15px;
+    margin-top: 10px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 20px;
+}
+
+.sbm-filter-actions .button {
+    height: 42px !important;
+    padding: 0 24px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease-in-out !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
 }
 
 .sbm-filter-actions .button-primary {
     background-color: #0f172a !important;
     border-color: #0f172a !important;
     color: #ffffff !important;
-    height: 38px !important;
-    line-height: 36px !important;
-    padding: 0 18px !important;
-    border-radius: 6px !important;
-    font-weight: 600 !important;
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -1px rgba(15, 23, 42, 0.06) !important;
 }
 
 .sbm-filter-actions .button-primary:hover {
     background-color: #1e293b !important;
     border-color: #1e293b !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -2px rgba(15, 23, 42, 0.05) !important;
+}
+
+.sbm-filter-actions .button-primary:active {
+    transform: translateY(0) !important;
 }
 
 .sbm-filter-actions .button-secondary {
-    height: 38px !important;
-    line-height: 36px !important;
-    padding: 0 18px !important;
-    border-radius: 6px !important;
-    font-weight: 600 !important;
+    background-color: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    color: #475569 !important;
+}
+
+.sbm-filter-actions .button-secondary:hover {
+    background-color: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #1e293b !important;
+    transform: translateY(-1px) !important;
+}
+
+.sbm-filter-actions .button-secondary:active {
+    transform: translateY(0) !important;
 }
 
 .sbm-reports-kpi .kpi-subtext {

@@ -345,12 +345,12 @@ class SBM_Admin {
             <hr class="wp-header-end">
 
             <!-- Filter Card -->
-            <div class="sbm-card sbm-filter-card" style="margin-top: 20px; padding: 20px 24px;">
+            <div class="sbm-card sbm-filter-card">
                 <form method="get" action="" class="sbm-reports-filter-form">
                     <input type="hidden" name="page" value="safety-reports" />
                     <div class="sbm-filter-grid">
                         <div class="filter-col">
-                            <label for="company"><?php esc_html_e( 'Contracting Company', 'safety-badges-manager' ); ?></label>
+                            <label for="company"><span class="dashicons dashicons-store"></span> <?php esc_html_e( 'Contracting Company', 'safety-badges-manager' ); ?></label>
                             <select name="company" id="company">
                                 <option value=""><?php esc_html_e( 'All Companies', 'safety-badges-manager' ); ?></option>
                                 <?php foreach ( $companies as $comp ) : ?>
@@ -359,7 +359,7 @@ class SBM_Admin {
                             </select>
                         </div>
                         <div class="filter-col">
-                            <label for="form_id"><?php esc_html_e( 'Safety Quiz', 'safety-badges-manager' ); ?></label>
+                            <label for="form_id"><span class="dashicons dashicons-welcome-learn-more"></span> <?php esc_html_e( 'Safety Quiz', 'safety-badges-manager' ); ?></label>
                             <select name="form_id" id="form_id">
                                 <option value=""><?php esc_html_e( 'All Quizzes', 'safety-badges-manager' ); ?></option>
                                 <?php foreach ( $safety_forms as $f ) : ?>
@@ -368,11 +368,11 @@ class SBM_Admin {
                             </select>
                         </div>
                         <div class="filter-col">
-                            <label for="start_date"><?php esc_html_e( 'Start Date', 'safety-badges-manager' ); ?></label>
+                            <label for="start_date"><span class="dashicons dashicons-calendar-alt"></span> <?php esc_html_e( 'Start Date', 'safety-badges-manager' ); ?></label>
                             <input type="date" name="start_date" id="start_date" value="<?php echo esc_attr( $start_date ); ?>" />
                         </div>
                         <div class="filter-col">
-                            <label for="end_date"><?php esc_html_e( 'End Date', 'safety-badges-manager' ); ?></label>
+                            <label for="end_date"><span class="dashicons dashicons-calendar-alt"></span> <?php esc_html_e( 'End Date', 'safety-badges-manager' ); ?></label>
                             <input type="date" name="end_date" id="end_date" value="<?php echo esc_attr( $end_date ); ?>" />
                         </div>
                     </div>
