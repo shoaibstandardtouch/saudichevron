@@ -10,16 +10,16 @@
 }
 
 .sbm-stats-cards {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1-fraction));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .sbm-charts-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 @media (max-width: 900px) {
     .sbm-charts-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -408,6 +408,7 @@
     gap: 12px;
     justify-content: flex-start;
     align-items: center;
+    flex-wrap: wrap;
     margin-top: 10px;
     border-top: 1px solid #f1f5f9;
     padding-top: 20px;
@@ -471,4 +472,48 @@
 
 .sbm-reports-kpi .stat-number {
     line-height: 1.2;
+}
+
+/* Responsive Table Wrapper */
+.sbm-table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.sbm-table-responsive table.wp-list-table {
+    min-width: 800px;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 600px) {
+    .sbm-card {
+        padding: 16px !important;
+    }
+    
+    .sbm-filter-card {
+        padding: 16px !important;
+    }
+    
+    .sbm-grid.sbm-stats-cards {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .sbm-grid.sbm-charts-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .sbm-filter-actions .button {
+        width: 100% !important;
+        margin-right: 0 !important;
+    }
+    
+    .sbm-filter-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px;
+    }
 }

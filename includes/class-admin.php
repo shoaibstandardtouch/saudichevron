@@ -289,8 +289,10 @@ class SBM_Admin {
                 <?php
                 // Display search box and filters
                 $list_table->search_box( esc_html__( 'Search Employees', 'safety-badges-manager' ), 'sbm-search' );
-                $list_table->display();
                 ?>
+                <div class="sbm-table-responsive">
+                    <?php $list_table->display(); ?>
+                </div>
             </form>
         </div>
         <?php
