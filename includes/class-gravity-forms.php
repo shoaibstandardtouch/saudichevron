@@ -49,6 +49,9 @@ class SBM_Gravity_Forms {
         add_filter( 'gform_field_value_sbm_name', array( $this, 'populate_sbm_name' ) );
         add_filter( 'gform_field_value_sbm_iqama', array( $this, 'populate_sbm_iqama' ) );
         add_filter( 'gform_field_value_sbm_company', array( $this, 'populate_sbm_company' ) );
+
+        // Filter user data before creating account to automate credentials
+        add_filter( 'gform_user_registration_user_data', array( $this, 'customize_user_registration_data' ), 10, 4 );
     }
 
     /**
@@ -183,6 +186,23 @@ class SBM_Gravity_Forms {
         }
         if ( ! $user_id ) {
             return; // Only registered users receive badges
+        }
+
+        // Auto-save user metadata if it's missing (fallback security)
+        $iqama = get_user_meta( $user_id, 'sbm_iqama', true );
+        if ( ! $iqama ) {
+            $submitted_iqama = $this->get_field_value_by_parameter( $form, $entry, 'sbm_iqama' );
+            if ( $submitted_iqama ) {
+                update_user_meta( $user_id, 'sbm_iqama', $submitted_iqama );
+            }
+        }
+
+        $company = get_user_meta( $user_id, 'sbm_company', true );
+        if ( ! $company ) {
+            $submitted_company = $this->get_field_value_by_parameter( $form, $entry, 'sbm_company' );
+            if ( $submitted_company ) {
+                update_user_meta( $user_id, 'sbm_company', $submitted_company );
+            }
         }
 
         // Retrieve user quiz percentage score
@@ -397,6 +417,69 @@ class SBM_Gravity_Forms {
     public function populate_sbm_company( $value ) {
         if ( is_user_logged_in() ) {
             return get_user_meta( get_current_user_id(), 'sbm_company', true );
+        }
+        return '';
+    }
+
+    /**
+     * Dynamically map and automate user credentials based on Iqama number on submission.
+     */
+    public function customize_user_registration_data( $user_data, $form, $entry, $feed ) {
+        // Skip if user is already logged in
+        if ( is_user_logged_in() ) {
+            return $user_data;
+        }
+
+        // Get Iqama/Passport value
+        $iqama = $this->get_field_value_by_parameter( $form, $entry, 'sbm_iqama' );
+        if ( empty( $iqama ) ) {
+            // Search by label fallback
+            foreach ( $form['fields'] as $field ) {
+                if ( strpos( strtolower( $field->label ), 'iqama' ) !== false || strpos( strtolower( $field->label ), 'passport' ) !== false ) {
+                    $iqama = rgar( $entry, (string) $field->id );
+                    break;
+                }
+            }
+        }
+
+        if ( ! empty( $iqama ) ) {
+            $username = sanitize_user( $iqama, true );
+            
+            $user_data['user_login'] = $username;
+            $user_data['user_pass']  = '111111'; // Set static password
+            $user_data['user_email'] = $username . '@gmail.com'; // Set dynamic email
+        }
+
+        // Get Name value
+        $display_name = $this->get_field_value_by_parameter( $form, $entry, 'sbm_name' );
+        if ( empty( $display_name ) ) {
+            // Search by label fallback
+            foreach ( $form['fields'] as $field ) {
+                if ( strpos( strtolower( $field->label ), 'name' ) !== false ) {
+                    $display_name = rgar( $entry, (string) $field->id );
+                    break;
+                }
+            }
+        }
+
+        if ( ! empty( $display_name ) ) {
+            $user_data['display_name'] = $display_name;
+            $user_data['first_name']   = $display_name;
+        }
+
+        return $user_data;
+    }
+
+    /**
+     * Helper: retrieve field value by its parameter name (inputName).
+     */
+    private function get_field_value_by_parameter( $form, $entry, $parameter_name ) {
+        if ( ! empty( $form['fields'] ) ) {
+            foreach ( $form['fields'] as $field ) {
+                if ( $field->inputName === $parameter_name ) {
+                    return rgar( $entry, (string) $field->id );
+                }
+            }
         }
         return '';
     }
