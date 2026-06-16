@@ -70,6 +70,14 @@ class SBM_Gravity_Forms {
 
         // Frontend script injection for dynamic prefilling as the user types
         add_filter( 'gform_pre_render', array( $this, 'inject_dynamic_email_script' ) );
+
+        // Add custom columns to the Gravity Forms entries list
+        add_filter( 'gform_entry_list_columns', array( $this, 'add_entry_list_columns' ), 10, 2 );
+        add_filter( 'gform_entries_field_value', array( $this, 'get_custom_column_value' ), 10, 4 );
+
+        // Add custom fields to Gravity Forms export
+        add_filter( 'gform_export_fields', array( $this, 'add_export_fields' ), 10, 2 );
+        add_filter( 'gform_export_field_value', array( $this, 'get_export_field_value' ), 10, 4 );
     }
 
     /**
@@ -870,5 +878,104 @@ class SBM_Gravity_Forms {
         }
 
         return home_url( '/user-registration/' );
+    }
+
+    /**
+     * Add custom columns to Gravity Forms entries list.
+     */
+    public function add_entry_list_columns( $columns, $form_id ) {
+        $form = GFAPI::get_form( $form_id );
+        if ( ! $form || ! rgar( $form, 'sbm_enabled' ) ) {
+            return $columns;
+        }
+
+        $columns['sbm_user_name']    = esc_html__( 'Employee Name', 'safety-badges-manager' );
+        $columns['sbm_user_iqama']   = esc_html__( 'Iqaama/Passport No.', 'safety-badges-manager' );
+        $columns['sbm_user_company'] = esc_html__( 'Company', 'safety-badges-manager' );
+
+        return $columns;
+    }
+
+    /**
+     * Retrieve values for custom columns in the entries list.
+     */
+    public function get_custom_column_value( $value, $form_id, $field_id, $entry ) {
+        if ( in_array( $field_id, array( 'sbm_user_name', 'sbm_user_iqama', 'sbm_user_company' ) ) ) {
+            $user_id = rgar( $entry, 'created_by' );
+            if ( ! $user_id ) {
+                return '';
+            }
+
+            $user = get_userdata( $user_id );
+            if ( ! $user ) {
+                return '';
+            }
+
+            switch ( $field_id ) {
+                case 'sbm_user_name':
+                    return esc_html( $user->display_name );
+                case 'sbm_user_iqama':
+                    return esc_html( get_user_meta( $user_id, 'sbm_iqama', true ) );
+                case 'sbm_user_company':
+                    $company = get_user_meta( $user_id, 'sbm_company', true );
+                    return esc_html( ! empty( $company ) ? $company : 'S-Chem' );
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Add custom fields to Gravity Forms export screen.
+     */
+    public function add_export_fields( $export_fields, $form_id ) {
+        $form = GFAPI::get_form( $form_id );
+        if ( ! $form || ! rgar( $form, 'sbm_enabled' ) ) {
+            return $export_fields;
+        }
+
+        $export_fields[] = array(
+            'id'    => 'sbm_export_user_name',
+            'label' => esc_html__( 'Employee Name', 'safety-badges-manager' )
+        );
+        $export_fields[] = array(
+            'id'    => 'sbm_export_user_iqama',
+            'label' => esc_html__( 'Iqaama/Passport No.', 'safety-badges-manager' )
+        );
+        $export_fields[] = array(
+            'id'    => 'sbm_export_user_company',
+            'label' => esc_html__( 'Company', 'safety-badges-manager' )
+        );
+
+        return $export_fields;
+    }
+
+    /**
+     * Retrieve values for custom fields during Gravity Forms export.
+     */
+    public function get_export_field_value( $value, $form_id, $field_id, $entry ) {
+        if ( in_array( $field_id, array( 'sbm_export_user_name', 'sbm_export_user_iqama', 'sbm_export_user_company' ) ) ) {
+            $user_id = rgar( $entry, 'created_by' );
+            if ( ! $user_id ) {
+                return '';
+            }
+
+            $user = get_userdata( $user_id );
+            if ( ! $user ) {
+                return '';
+            }
+
+            switch ( $field_id ) {
+                case 'sbm_export_user_name':
+                    return $user->display_name;
+                case 'sbm_export_user_iqama':
+                    return get_user_meta( $user_id, 'sbm_iqama', true );
+                case 'sbm_export_user_company':
+                    $company = get_user_meta( $user_id, 'sbm_company', true );
+                    return ! empty( $company ) ? $company : 'S-Chem';
+            }
+        }
+
+        return $value;
     }
 }
