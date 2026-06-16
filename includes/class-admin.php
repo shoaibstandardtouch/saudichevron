@@ -882,6 +882,17 @@ class SBM_Employee_List_Table extends WP_List_Table {
                 echo '<option value="' . esc_attr( $company ) . '" ' . selected( $current_company, $company, false ) . '>' . esc_html( $company ) . '</option>';
             }
             echo '</select>';
+
+            // Preserve other query variables when filtering
+            if ( isset( $_GET['status_filter'] ) ) {
+                echo '<input type="hidden" name="status_filter" value="' . esc_attr( sanitize_text_field( $_GET['status_filter'] ) ) . '" />';
+            }
+            if ( isset( $_GET['orderby'] ) ) {
+                echo '<input type="hidden" name="orderby" value="' . esc_attr( sanitize_text_field( $_GET['orderby'] ) ) . '" />';
+            }
+            if ( isset( $_GET['order'] ) ) {
+                echo '<input type="hidden" name="order" value="' . esc_attr( sanitize_text_field( $_GET['order'] ) ) . '" />';
+            }
             
             submit_button( esc_html__( 'Filter', 'safety-badges-manager' ), 'button', 'filter_action', false, array( 'style' => 'vertical-align: top;' ) );
             echo '</div>';

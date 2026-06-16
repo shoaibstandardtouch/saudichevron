@@ -315,7 +315,7 @@
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
 }
 
 .sbm-reports-filter-form {
@@ -326,8 +326,20 @@
 
 .sbm-filter-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     grid-gap: 20px;
+}
+
+@media (max-width: 1024px) {
+    .sbm-filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .sbm-filter-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .filter-col {
@@ -337,9 +349,13 @@
 }
 
 .filter-col label {
+    display: block !important;
     font-size: 13px;
     font-weight: 600;
     color: #475569;
+    margin-bottom: 6px;
+    float: none !important;
+    width: auto !important;
 }
 
 .filter-col select,
@@ -353,6 +369,8 @@
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    height: 38px !important;
+    line-height: 20px !important;
 }
 
 .filter-col select:focus,
@@ -365,8 +383,33 @@
 .sbm-filter-actions {
     display: flex;
     gap: 10px;
-    justify-content: flex-end;
+    justify-content: flex-start;
     align-items: center;
+    margin-top: 15px;
+}
+
+.sbm-filter-actions .button-primary {
+    background-color: #0f172a !important;
+    border-color: #0f172a !important;
+    color: #ffffff !important;
+    height: 38px !important;
+    line-height: 36px !important;
+    padding: 0 18px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+
+.sbm-filter-actions .button-primary:hover {
+    background-color: #1e293b !important;
+    border-color: #1e293b !important;
+}
+
+.sbm-filter-actions .button-secondary {
+    height: 38px !important;
+    line-height: 36px !important;
+    padding: 0 18px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
 }
 
 .sbm-reports-kpi .kpi-subtext {
@@ -378,13 +421,4 @@
 
 .sbm-reports-kpi .stat-number {
     line-height: 1.2;
-}
-
-@media (max-width: 768px) {
-    .sbm-filter-grid {
-        grid-template-columns: 1fr;
-    }
-    .sbm-filter-actions {
-        justify-content: flex-start;
-    }
 }

@@ -184,7 +184,7 @@ class SBM_DB {
         
         // Filter out administrators to focus on employees
         $query .= " LEFT JOIN {$wpdb->usermeta} um ON u.ID = um.user_id AND um.meta_key = '{$wpdb->prefix}capabilities' ";
-        $where[] = "um.meta_value NOT LIKE '%administrator%'";
+        $where[] = "(um.meta_value IS NULL OR um.meta_value NOT LIKE '%administrator%')";
 
         if ( ! empty( $args['search'] ) ) {
             $search_like = '%' . $wpdb->esc_like( $args['search'] ) . '%';
@@ -252,7 +252,7 @@ class SBM_DB {
         
         $query .= " LEFT JOIN {$wpdb->usermeta} um ON u.ID = um.user_id AND um.meta_key = '{$wpdb->prefix}capabilities' ";
         $query .= " LEFT JOIN {$wpdb->usermeta} um_comp ON u.ID = um_comp.user_id AND um_comp.meta_key = 'sbm_company' ";
-        $where[] = "um.meta_value NOT LIKE '%administrator%'";
+        $where[] = "(um.meta_value IS NULL OR um.meta_value NOT LIKE '%administrator%')";
 
         if ( ! empty( $args['search'] ) ) {
             $search_like = '%' . $wpdb->esc_like( $args['search'] ) . '%';
@@ -432,7 +432,6 @@ class SBM_DB {
 
         $where = array();
         $where[] = "e.status = 'active'";
-        $where[] = "e.created_by IS NOT NULL AND e.created_by > 0";
         
         // Filter by company
         if ( ! empty( $args['company'] ) ) {
@@ -477,10 +476,9 @@ class SBM_DB {
                 MAX(CASE WHEN em.meta_key = 'gquiz_is_pass' THEN em.meta_value END) as is_pass
             FROM $gf_entry_table e
             LEFT JOIN {$wpdb->usermeta} um_comp ON e.created_by = um_comp.user_id AND um_comp.meta_key = 'sbm_company'
-            LEFT JOIN {$wpdb->usermeta} um_cap ON e.created_by = um_cap.user_id AND um_cap.meta_key = '{$wpdb->prefix}capabilities'
             LEFT JOIN $gf_entry_meta_table em ON e.id = em.entry_id AND em.meta_key IN ('gquiz_percent', 'gquiz_is_pass')
-            WHERE $where_clause AND um_cap.meta_value NOT LIKE '%administrator%'
-            GROUP BY e.id
+            WHERE $where_clause
+            GROUP BY e.id, e.created_by, e.form_id, e.date_created, um_comp.meta_value
             ORDER BY e.date_created DESC
         ";
 
@@ -510,7 +508,7 @@ class SBM_DB {
                     GROUP BY user_id
                 ) b2 ON b1.user_id = b2.user_id AND b1.pass_date = b2.max_date
             ) b ON u.ID = b.user_id
-            WHERE um_cap.meta_value NOT LIKE '%administrator%'
+            WHERE (um_cap.meta_value IS NULL OR um_cap.meta_value NOT LIKE '%administrator%')
             GROUP BY company, badge_status
         ";
 
