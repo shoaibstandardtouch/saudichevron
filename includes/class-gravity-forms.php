@@ -59,6 +59,9 @@ class SBM_Gravity_Forms {
         // Filter confirmation to log in and redirect to homepage on successful registration
         add_filter( 'gform_confirmation', array( $this, 'redirect_registration_to_homepage' ), 10, 4 );
 
+        // Force User Registration feed to process synchronously to allow auto-login
+        add_filter( 'gform_is_feed_asynchronous', array( $this, 'disable_async_user_registration_feed' ), 10, 3 );
+
         // Handle custom login post request
         add_action( 'init', array( $this, 'handle_custom_login' ) );
 
@@ -665,6 +668,16 @@ class SBM_Gravity_Forms {
         }
 
         return $confirmation;
+    }
+
+    /**
+     * Disable asynchronous processing for the User Registration feed to ensure auto-login works.
+     */
+    public function disable_async_user_registration_feed( $is_asynchronous, $feed, $form ) {
+        if ( isset( $feed['addon_slug'] ) && $feed['addon_slug'] === 'gravityformsuserregistration' ) {
+            return false;
+        }
+        return $is_asynchronous;
     }
 
     /**
