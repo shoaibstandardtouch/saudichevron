@@ -633,6 +633,13 @@ class SBM_Gravity_Forms {
                 'first_name'   => $display_name,
             ) );
         }
+
+        // Programmatically sign in the user immediately upon successful registration
+        if ( ! is_user_logged_in() ) {
+            wp_clear_auth_cookie();
+            wp_set_current_user( $user_id );
+            wp_set_auth_cookie( $user_id, true );
+        }
     }
 
     /**
@@ -653,34 +660,6 @@ class SBM_Gravity_Forms {
         }
 
         if ( $is_reg_form ) {
-            // Get newly registered user ID
-            $user_id = rgar( $entry, 'created_by' );
-            if ( ! $user_id ) {
-                $iqama = $this->get_field_value_by_parameter( $form, $entry, 'sbm_iqama' );
-                if ( empty( $iqama ) ) {
-                    foreach ( $form['fields'] as $field ) {
-                        $lbl = strtolower( $field->label );
-                        if ( strpos( $lbl, 'iqama' ) !== false || strpos( $lbl, 'iqaama' ) !== false || strpos( $lbl, 'passport' ) !== false ) {
-                            $iqama = rgar( $entry, (string) $field->id );
-                            break;
-                        }
-                    }
-                }
-                if ( ! empty( $iqama ) ) {
-                    $user = get_user_by( 'login', sanitize_user( $iqama, true ) );
-                    if ( $user ) {
-                        $user_id = $user->ID;
-                    }
-                }
-            }
-
-            if ( $user_id && ! is_user_logged_in() ) {
-                // Programmatically sign in the user
-                wp_clear_auth_cookie();
-                wp_set_current_user( $user_id );
-                wp_set_auth_cookie( $user_id, true );
-            }
-
             // Redirect directly to the Homepage
             $confirmation = array( 'redirect' => home_url( '/' ) );
         }
