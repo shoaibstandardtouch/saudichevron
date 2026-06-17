@@ -56,7 +56,7 @@ class SBM_Admin {
         add_menu_page(
             esc_html__( 'Safety Training', 'safety-badges-manager' ),
             esc_html__( 'Safety Training', 'safety-badges-manager' ),
-            'manage_options',
+            'manage_safety_training',
             'safety-training',
             array( $this, 'render_dashboard_page' ),
             'dashicons-shield-alt',
@@ -67,7 +67,7 @@ class SBM_Admin {
             'safety-training',
             esc_html__( 'Dashboard', 'safety-badges-manager' ),
             esc_html__( 'Dashboard', 'safety-badges-manager' ),
-            'manage_options',
+            'manage_safety_training',
             'safety-training',
             array( $this, 'render_dashboard_page' )
         );
@@ -76,7 +76,7 @@ class SBM_Admin {
             'safety-training',
             esc_html__( 'Employees', 'safety-badges-manager' ),
             esc_html__( 'Employees', 'safety-badges-manager' ),
-            'manage_options',
+            'manage_safety_training',
             'safety-employees',
             array( $this, 'render_employees_page' )
         );
@@ -85,7 +85,7 @@ class SBM_Admin {
             'safety-training',
             esc_html__( 'Reports', 'safety-badges-manager' ),
             esc_html__( 'Reports', 'safety-badges-manager' ),
-            'manage_options',
+            'manage_safety_training',
             'safety-reports',
             array( $this, 'render_reports_page' )
         );
@@ -313,7 +313,7 @@ class SBM_Admin {
      * Render Safety Training Reports Page with advanced filters and interactive charts.
      */
     public function render_reports_page() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
             return;
         }
 
@@ -876,7 +876,7 @@ class SBM_Admin {
      * Handle manual badge status overrides (revoke / activate).
      */
     public function handle_manual_status_update() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
             wp_die( esc_html__( 'Unauthorized user.', 'safety-badges-manager' ) );
         }
 
@@ -903,7 +903,7 @@ class SBM_Admin {
      * Handle saving of individual employee settings (e.g. printing toggle).
      */
     public function handle_employee_settings_update() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
             wp_die( esc_html__( 'Unauthorized user.', 'safety-badges-manager' ) );
         }
 
@@ -928,7 +928,7 @@ class SBM_Admin {
      * Handle custom CSV exports for Employees and Reports.
      */
     public function handle_csv_exports() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
             return;
         }
 
@@ -1081,8 +1081,8 @@ class SBM_Admin {
             return;
         }
 
-        // Check if user is logged in and is not an administrator
-        if ( is_user_logged_in() && ! current_user_can( 'manage_options' ) ) {
+        // Check if user is logged in and does not have compliance manager or admin capabilities
+        if ( is_user_logged_in() && ! current_user_can( 'manage_safety_training' ) ) {
             // Bypass redirect if this is the print badges request on admin-post.php
             if ( isset( $_GET['action'] ) && 'sbm_print_badges' === $_GET['action'] && strpos( $_SERVER['SCRIPT_NAME'], 'admin-post.php' ) !== false ) {
                 return;
@@ -1096,7 +1096,7 @@ class SBM_Admin {
      * Disable admin bar for non-admins (subscribers/employees).
      */
     public function hide_admin_bar_for_subscribers( $show ) {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
             return false;
         }
         return $show;

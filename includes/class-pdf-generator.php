@@ -37,8 +37,8 @@ class SBM_PDF_Generator {
      * Generate bulk PDF of badges.
      */
     public function generate_bulk_pdf() {
-        // Permission check: Administrators can print any badges; logged-in employees can only print their own badges.
-        if ( ! current_user_can( 'manage_options' ) ) {
+        // Permission check: Administrators/Managers can print any badges; logged-in employees can only print their own badges.
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
             if ( ! is_user_logged_in() ) {
                 wp_die( esc_html__( 'You must be logged in to print your badge.', 'safety-badges-manager' ) );
             }

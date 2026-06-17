@@ -3,7 +3,7 @@
  * Plugin Name: Safety Badges Manager
  * Plugin URI:  https://standardtouch.com
  * Description: Safety training compliance system. Extends Gravity Forms Quiz to manage employee certificates, automate badge expiry, randomize test questions, and print bulk PDFs.
- * Version:     1.3.7
+ * Version:     1.3.8
  * Author:      StandardTouch
  * Author URI:  https://standardtouch.com
  * License:     GPL2
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define Constants
-define( 'SBM_VERSION', '1.3.7' );
+define( 'SBM_VERSION', '1.3.8' );
 define( 'SBM_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SBM_URL', plugin_dir_url( __FILE__ ) );
 define( 'SBM_BASENAME', plugin_basename( __FILE__ ) );
@@ -33,6 +33,7 @@ require_once SBM_PATH . 'includes/class-cron.php';
 require_once SBM_PATH . 'includes/class-admin.php';
 require_once SBM_PATH . 'includes/class-pdf-generator.php';
 require_once SBM_PATH . 'includes/class-verification.php';
+require_once SBM_PATH . 'includes/class-whitelabel.php';
 
 /**
  * Main Safety Badges Manager Class
@@ -82,6 +83,12 @@ class Safety_Badges_Manager {
     public $verification;
 
     /**
+     * Whitelabel Handler.
+     * @var SBM_Whitelabel
+     */
+    public $whitelabel;
+
+    /**
      * Get instance of the class.
      */
     public static function get_instance() {
@@ -102,6 +109,7 @@ class Safety_Badges_Manager {
         $this->admin         = new SBM_Admin( $this->db );
         $this->pdf_generator = new SBM_PDF_Generator( $this->db );
         $this->verification  = new SBM_Verification( $this->db );
+        $this->whitelabel    = new SBM_Whitelabel();
 
         // Register hooks
         register_activation_hook( __FILE__, array( $this, 'activate' ) );
@@ -145,6 +153,7 @@ class Safety_Badges_Manager {
         $this->admin->init();
         $this->pdf_generator->init();
         $this->verification->init();
+        $this->whitelabel->init();
     }
 }
 
