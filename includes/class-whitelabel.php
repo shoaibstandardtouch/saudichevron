@@ -250,13 +250,21 @@ class SBM_Whitelabel {
             return false;
         }
 
+        if ( is_wp_error( $form ) || ( ! is_array( $form ) && ! is_object( $form ) ) ) {
+            return false;
+        }
+
+        $form_id = rgar( $form, 'id' );
+
         // Hide Form ID 5
-        if ( isset( $form['id'] ) && $form['id'] == 5 ) {
+        if ( $form_id == 5 ) {
             return true;
         }
 
+        $title = rgar( $form, 'title' );
+        
         // Hide forms with title containing 'user registration'
-        if ( isset( $form['title'] ) && stripos( $form['title'], 'user registration' ) !== false ) {
+        if ( $title && stripos( $title, 'user registration' ) !== false ) {
             return true;
         }
 
@@ -268,6 +276,10 @@ class SBM_Whitelabel {
      */
     public function filter_admin_forms_list( $forms ) {
         if ( ! current_user_can( 'sbm_manager' ) ) {
+            return $forms;
+        }
+
+        if ( ! is_array( $forms ) || is_wp_error( $forms ) ) {
             return $forms;
         }
 
@@ -288,9 +300,17 @@ class SBM_Whitelabel {
             return $counts;
         }
 
+        if ( ! is_array( $counts ) ) {
+            return $counts;
+        }
+
         // Fetch all forms to count the hidden ones
         if ( class_exists( 'GFAPI' ) ) {
             $all_forms = GFAPI::get_forms();
+            if ( ! is_array( $all_forms ) || is_wp_error( $all_forms ) ) {
+                return $counts;
+            }
+
             $hidden_active = 0;
             $hidden_inactive = 0;
             $hidden_trash = 0;
@@ -299,16 +319,22 @@ class SBM_Whitelabel {
                 if ( $this->is_hidden_form( $form ) ) {
                     if ( rgar( $form, 'is_trash' ) ) {
                         $hidden_trash++;
-                    } elseif ( rgar( $form, 'is_active' ) ) {
-                        $hidden_active++;
                     } else {
-                        $hidden_inactive++;
+                        $is_active = rgar( $form, 'is_active' );
+                        if ( $is_active == '1' || $is_active === true ) {
+                            $hidden_active++;
+                        } else {
+                            $hidden_inactive++;
+                        }
                     }
                 }
             }
 
             $hidden_total = $hidden_active + $hidden_inactive;
 
+            if ( isset( $counts['total'] ) ) {
+                $counts['total'] = max( 0, $counts['total'] - $hidden_total );
+            }
             if ( isset( $counts['all'] ) ) {
                 $counts['all'] = max( 0, $counts['all'] - $hidden_total );
             }
@@ -344,7 +370,7 @@ class SBM_Whitelabel {
 
         if ( $form_id && class_exists( 'GFAPI' ) ) {
             $form = GFAPI::get_form( $form_id );
-            if ( $form && $this->is_hidden_form( $form ) ) {
+            if ( $form && ! is_wp_error( $form ) && $this->is_hidden_form( $form ) ) {
                 wp_die( esc_html__( 'You do not have permission to access this form.', 'safety-badges-manager' ) );
             }
         }
