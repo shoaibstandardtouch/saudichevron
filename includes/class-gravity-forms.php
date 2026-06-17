@@ -476,7 +476,13 @@ class SBM_Gravity_Forms {
      */
     public function populate_sbm_iqama( $value ) {
         if ( is_user_logged_in() ) {
-            return get_user_meta( get_current_user_id(), 'sbm_iqama', true );
+            $user_id = get_current_user_id();
+            $iqama = get_user_meta( $user_id, 'sbm_iqama', true );
+            if ( empty( $iqama ) ) {
+                $user = wp_get_current_user();
+                $iqama = $user->user_login;
+            }
+            return $iqama;
         }
         return '';
     }
@@ -647,6 +653,50 @@ class SBM_Gravity_Forms {
                 'display_name' => $display_name,
                 'first_name'   => $display_name,
             ) );
+        }
+
+        // Extract and save Iqama number to user meta during registration
+        $iqama = get_user_meta( $user_id, 'sbm_iqama', true );
+        if ( empty( $iqama ) ) {
+            $submitted_iqama = $this->get_field_value_by_parameter( $form, $entry, 'sbm_iqama' );
+            if ( empty( $submitted_iqama ) ) {
+                foreach ( $form['fields'] as $field ) {
+                    $lbl = strtolower( $field->label );
+                    if ( strpos( $lbl, 'iqama' ) !== false || strpos( $lbl, 'iqaama' ) !== false || strpos( $lbl, 'passport' ) !== false ) {
+                        $submitted_iqama = rgar( $entry, (string) $field->id );
+                        break;
+                    }
+                }
+            }
+            if ( ! empty( $submitted_iqama ) ) {
+                update_user_meta( $user_id, 'sbm_iqama', $submitted_iqama );
+            } else {
+                // Fallback to username
+                $user = get_userdata( $user_id );
+                if ( $user ) {
+                    update_user_meta( $user_id, 'sbm_iqama', $user->user_login );
+                }
+            }
+        }
+
+        // Extract and save Company name to user meta during registration
+        $company = get_user_meta( $user_id, 'sbm_company', true );
+        if ( empty( $company ) ) {
+            $submitted_company = $this->get_field_value_by_parameter( $form, $entry, 'sbm_company' );
+            if ( empty( $submitted_company ) ) {
+                foreach ( $form['fields'] as $field ) {
+                    $lbl = strtolower( $field->label );
+                    if ( strpos( $lbl, 'company' ) !== false ) {
+                        $submitted_company = rgar( $entry, (string) $field->id );
+                        break;
+                    }
+                }
+            }
+            if ( ! empty( $submitted_company ) ) {
+                update_user_meta( $user_id, 'sbm_company', $submitted_company );
+            } else {
+                update_user_meta( $user_id, 'sbm_company', 'S-Chem' );
+            }
         }
 
         // Programmatically sign in the user immediately upon successful registration
@@ -894,11 +944,31 @@ class SBM_Gravity_Forms {
             return $columns;
         }
 
-        $columns['sbm_user_name']    = esc_html__( 'Employee Name', 'safety-badges-manager' );
-        $columns['sbm_user_iqama']   = esc_html__( 'Iqaama No.', 'safety-badges-manager' );
-        $columns['sbm_user_company'] = esc_html__( 'Company', 'safety-badges-manager' );
+        $new_columns = array();
+        
+        // Star and checkbox selectors always stay at the beginning
+        if ( isset( $columns['cb'] ) ) {
+            $new_columns['cb'] = $columns['cb'];
+            unset( $columns['cb'] );
+        }
+        if ( isset( $columns['is_starred'] ) ) {
+            $new_columns['is_starred'] = $columns['is_starred'];
+            unset( $columns['is_starred'] );
+        }
 
-        return $columns;
+        // Place custom SBM identity columns first as requested
+        $new_columns['sbm_user_name']    = esc_html__( 'Employee Name', 'safety-badges-manager' );
+        $new_columns['sbm_user_iqama']   = esc_html__( 'Iqaama No.', 'safety-badges-manager' );
+        $new_columns['sbm_user_company'] = esc_html__( 'Company', 'safety-badges-manager' );
+
+        // Place the remaining Gravity Forms core columns afterwards
+        foreach ( $columns as $key => $label ) {
+            if ( ! in_array( $key, array( 'sbm_user_name', 'sbm_user_iqama', 'sbm_user_company' ) ) ) {
+                $new_columns[ $key ] = $label;
+            }
+        }
+
+        return $new_columns;
     }
 
     /**
@@ -920,7 +990,11 @@ class SBM_Gravity_Forms {
                 case 'sbm_user_name':
                     return esc_html( $user->display_name );
                 case 'sbm_user_iqama':
-                    return esc_html( get_user_meta( $user_id, 'sbm_iqama', true ) );
+                    $iqama = get_user_meta( $user_id, 'sbm_iqama', true );
+                    if ( empty( $iqama ) ) {
+                        $iqama = $user->user_login;
+                    }
+                    return esc_html( $iqama );
                 case 'sbm_user_company':
                     $company = get_user_meta( $user_id, 'sbm_company', true );
                     return esc_html( ! empty( $company ) ? $company : 'S-Chem' );
@@ -974,7 +1048,11 @@ class SBM_Gravity_Forms {
                 case 'sbm_export_user_name':
                     return $user->display_name;
                 case 'sbm_export_user_iqama':
-                    return get_user_meta( $user_id, 'sbm_iqama', true );
+                    $iqama = get_user_meta( $user_id, 'sbm_iqama', true );
+                    if ( empty( $iqama ) ) {
+                        $iqama = $user->user_login;
+                    }
+                    return $iqama;
                 case 'sbm_export_user_company':
                     $company = get_user_meta( $user_id, 'sbm_company', true );
                     return ! empty( $company ) ? $company : 'S-Chem';
@@ -1125,6 +1203,9 @@ class SBM_Gravity_Forms {
         $user_id = get_current_user_id();
         $user    = wp_get_current_user();
         $iqama   = get_user_meta( $user_id, 'sbm_iqama', true );
+        if ( empty( $iqama ) ) {
+            $iqama = $user->user_login;
+        }
         $company = get_user_meta( $user_id, 'sbm_company', true );
 
         // 2. QUIZ MODE: Render a selected active Gravity Forms quiz page template

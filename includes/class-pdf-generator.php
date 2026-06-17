@@ -99,6 +99,9 @@ class SBM_PDF_Generator {
             if ( ! empty( $active_certs ) ) {
                 // Fetch Iqama and Company metadata
                 $iqama   = get_user_meta( $user_id, 'sbm_iqama', true );
+                if ( empty( $iqama ) ) {
+                    $iqama = $user->user_login;
+                }
                 $company = get_user_meta( $user_id, 'sbm_company', true );
 
                 $employees_badges[] = array(

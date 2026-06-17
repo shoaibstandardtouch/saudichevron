@@ -590,6 +590,9 @@ class SBM_Admin {
 
         // Fetch meta values
         $iqama   = get_user_meta( $user_id, 'sbm_iqama', true );
+        if ( empty( $iqama ) ) {
+            $iqama = $user->user_login;
+        }
         $company = get_user_meta( $user_id, 'sbm_company', true );
 
         // Fetch test submissions using Gravity Forms API
@@ -802,6 +805,10 @@ class SBM_Admin {
                     }
 
                     $iqama   = get_user_meta( $item->user_id, 'sbm_iqama', true );
+                    if ( empty( $iqama ) ) {
+                        $user_obj = get_userdata( $item->user_id );
+                        $iqama = $user_obj ? $user_obj->user_login : '';
+                    }
                     $company = get_user_meta( $item->user_id, 'sbm_company', true );
                     if ( empty( $company ) ) {
                         $company = 'S-Chem';
@@ -857,6 +864,9 @@ class SBM_Admin {
                     $user = get_userdata( $entry->user_id );
                     $user_name = $user ? $user->display_name : 'Guest';
                     $iqama = get_user_meta( $entry->user_id, 'sbm_iqama', true );
+                    if ( empty( $iqama ) ) {
+                        $iqama = $user ? $user->user_login : '';
+                    }
                     
                     $form_title = 'Form #' . $entry->form_id;
                     if ( class_exists( 'GFAPI' ) ) {
