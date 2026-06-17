@@ -30,6 +30,11 @@ class SBM_Whitelabel {
 
         // Redirect Safety Manager login to Compliance Dashboard
         add_filter( 'login_redirect', array( $this, 'redirect_login_to_compliance_dashboard' ), 10, 3 );
+
+        // Hide User Registration form from Safety Compliance Managers in Gravity Forms
+        add_filter( 'gform_form_list_forms', array( $this, 'filter_admin_forms_list' ) );
+        add_filter( 'gform_form_list_count', array( $this, 'filter_admin_forms_count' ) );
+        add_action( 'admin_init', array( $this, 'restrict_hidden_form_access' ) );
     }
 
     /**
@@ -235,5 +240,113 @@ class SBM_Whitelabel {
             }
         }
         return $redirect_to;
+    }
+
+    /**
+     * Check if a form should be hidden from the Safety Compliance Manager.
+     */
+    private function is_hidden_form( $form ) {
+        if ( ! current_user_can( 'sbm_manager' ) ) {
+            return false;
+        }
+
+        // Hide Form ID 5
+        if ( isset( $form['id'] ) && $form['id'] == 5 ) {
+            return true;
+        }
+
+        // Hide forms with title containing 'user registration'
+        if ( isset( $form['title'] ) && stripos( $form['title'], 'user registration' ) !== false ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Filter the forms list in WP admin for sbm_manager role.
+     */
+    public function filter_admin_forms_list( $forms ) {
+        if ( ! current_user_can( 'sbm_manager' ) ) {
+            return $forms;
+        }
+
+        foreach ( $forms as $key => $form ) {
+            if ( $this->is_hidden_form( $form ) ) {
+                unset( $forms[ $key ] );
+            }
+        }
+
+        return array_values( $forms );
+    }
+
+    /**
+     * Filter the form counts in WP admin for sbm_manager role.
+     */
+    public function filter_admin_forms_count( $counts ) {
+        if ( ! current_user_can( 'sbm_manager' ) ) {
+            return $counts;
+        }
+
+        // Fetch all forms to count the hidden ones
+        if ( class_exists( 'GFAPI' ) ) {
+            $all_forms = GFAPI::get_forms();
+            $hidden_active = 0;
+            $hidden_inactive = 0;
+            $hidden_trash = 0;
+
+            foreach ( $all_forms as $form ) {
+                if ( $this->is_hidden_form( $form ) ) {
+                    if ( rgar( $form, 'is_trash' ) ) {
+                        $hidden_trash++;
+                    } elseif ( rgar( $form, 'is_active' ) ) {
+                        $hidden_active++;
+                    } else {
+                        $hidden_inactive++;
+                    }
+                }
+            }
+
+            $hidden_total = $hidden_active + $hidden_inactive;
+
+            if ( isset( $counts['all'] ) ) {
+                $counts['all'] = max( 0, $counts['all'] - $hidden_total );
+            }
+            if ( isset( $counts['active'] ) ) {
+                $counts['active'] = max( 0, $counts['active'] - $hidden_active );
+            }
+            if ( isset( $counts['inactive'] ) ) {
+                $counts['inactive'] = max( 0, $counts['inactive'] - $hidden_inactive );
+            }
+            if ( isset( $counts['trash'] ) ) {
+                $counts['trash'] = max( 0, $counts['trash'] - $hidden_trash );
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Block direct access to hidden forms for sbm_manager role.
+     */
+    public function restrict_hidden_form_access() {
+        if ( ! is_admin() || ! current_user_can( 'sbm_manager' ) ) {
+            return;
+        }
+
+        $form_id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
+        if ( ! $form_id && isset( $_POST['form_id'] ) ) {
+            $form_id = intval( $_POST['form_id'] );
+        }
+        if ( ! $form_id ) {
+            $form_id = isset( $_GET['form_id'] ) ? intval( $_GET['form_id'] ) : 0;
+        }
+
+        if ( $form_id && class_exists( 'GFAPI' ) ) {
+            $form = GFAPI::get_form( $form_id );
+            if ( $form && $this->is_hidden_form( $form ) ) {
+                wp_die( esc_html__( 'You do not have permission to access this form.', 'safety-badges-manager' ) );
+            }
+        }
     }
 }
