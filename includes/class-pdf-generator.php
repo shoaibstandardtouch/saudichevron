@@ -37,8 +37,19 @@ class SBM_PDF_Generator {
      * Generate bulk PDF of badges.
      */
     public function generate_bulk_pdf() {
+        // Permission check: Administrators can print any badges; logged-in employees can only print their own badges.
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'You do not have permission to print badges.', 'safety-badges-manager' ) );
+            if ( ! is_user_logged_in() ) {
+                wp_die( esc_html__( 'You must be logged in to print your badge.', 'safety-badges-manager' ) );
+            }
+            $badge_ids = isset( $_GET['badges'] ) ? (array) $_GET['badges'] : array();
+            $badge_ids = array_map( 'intval', $badge_ids );
+            foreach ( $badge_ids as $id ) {
+                $badge = $this->db->get_badge( $id );
+                if ( $badge && intval( $badge->user_id ) !== get_current_user_id() ) {
+                    wp_die( esc_html__( 'You do not have permission to print this badge.', 'safety-badges-manager' ) );
+                }
+            }
         }
 
         // Get badge IDs from query arguments (either array or single value)
