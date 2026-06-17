@@ -48,12 +48,22 @@ class SBM_Whitelabel {
                 'sbm_manager',
                 __( 'Safety Compliance Manager', 'safety-badges-manager' ),
                 array(
-                    'read'                        => true,
-                    'manage_safety_training'      => true,
+                    'read'                          => true,
+                    'manage_safety_training'        => true,
                     // Gravity Forms Capabilities for managers
-                    'gravityforms_edit_forms'     => true,
-                    'gravityforms_view_entries'   => true,
-                    'gravityforms_export_entries' => true,
+                    'gravityforms_create_form'      => true,
+                    'gravityforms_edit_forms'        => true,
+                    'gravityforms_delete_forms'      => true,
+                    'gravityforms_preview_forms'     => true,
+                    'gravityforms_view_entries'      => true,
+                    'gravityforms_edit_entries'      => true,
+                    'gravityforms_delete_entries'    => true,
+                    'gravityforms_view_entry_notes'  => true,
+                    'gravityforms_edit_entry_notes'  => true,
+                    'gravityforms_export_entries'    => true,
+                    'gravityforms_view_settings'     => true,
+                    'gravityforms_edit_settings'     => true,
+                    'gravityforms_user_registration' => true,
                 )
             );
         } else {
@@ -61,9 +71,19 @@ class SBM_Whitelabel {
             $manager_role = get_role( 'sbm_manager' );
             if ( $manager_role ) {
                 $manager_role->add_cap( 'manage_safety_training' );
+                $manager_role->add_cap( 'gravityforms_create_form' );
                 $manager_role->add_cap( 'gravityforms_edit_forms' );
+                $manager_role->add_cap( 'gravityforms_delete_forms' );
+                $manager_role->add_cap( 'gravityforms_preview_forms' );
                 $manager_role->add_cap( 'gravityforms_view_entries' );
+                $manager_role->add_cap( 'gravityforms_edit_entries' );
+                $manager_role->add_cap( 'gravityforms_delete_entries' );
+                $manager_role->add_cap( 'gravityforms_view_entry_notes' );
+                $manager_role->add_cap( 'gravityforms_edit_entry_notes' );
                 $manager_role->add_cap( 'gravityforms_export_entries' );
+                $manager_role->add_cap( 'gravityforms_view_settings' );
+                $manager_role->add_cap( 'gravityforms_edit_settings' );
+                $manager_role->add_cap( 'gravityforms_user_registration' );
             }
         }
     }

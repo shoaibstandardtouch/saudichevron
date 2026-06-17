@@ -94,7 +94,7 @@ class SBM_Admin {
             'safety-training',
             esc_html__( 'Settings', 'safety-badges-manager' ),
             esc_html__( 'Settings', 'safety-badges-manager' ),
-            'manage_options',
+            'manage_safety_training',
             'safety-settings',
             array( $this, 'render_settings_page' )
         );
@@ -781,7 +781,7 @@ class SBM_Admin {
      * Render SBM Global Settings page.
      */
     public function render_settings_page() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
             wp_die( esc_html__( 'Unauthorized user.', 'safety-badges-manager' ) );
         }
 
