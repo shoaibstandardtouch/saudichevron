@@ -722,7 +722,7 @@ class SBM_Gravity_Forms {
                 // Friendly error translation
                 $error_msg = $user->get_error_message();
                 if ( strpos( $error_msg, 'invalid_username' ) !== false || strpos( $error_msg, 'incorrect_password' ) !== false ) {
-                    $error_msg = esc_html__( 'Invalid Iqaama/Passport Number or Password.', 'safety-badges-manager' );
+                    $error_msg = esc_html__( 'Invalid Iqaama Number or Password.', 'safety-badges-manager' );
                 }
                 set_query_var( 'sbm_login_error', $error_msg );
             } else {
@@ -819,7 +819,7 @@ class SBM_Gravity_Forms {
 
                 <!-- Titles -->
                 <h3 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;"><?php esc_html_e( 'Employee Login', 'safety-badges-manager' ); ?></h3>
-                <p style="font-size: 13px; color: #64748b; margin: 0 0 25px 0; line-height: 1.5;"><?php esc_html_e( 'Enter your Iqaama/Passport Number to appear for the safety quiz.', 'safety-badges-manager' ); ?></p>
+                <p style="font-size: 13px; color: #64748b; margin: 0 0 25px 0; line-height: 1.5;"><?php esc_html_e( 'Enter your Iqaama Number to appear for the safety quiz.', 'safety-badges-manager' ); ?></p>
 
                 <!-- Error Messages -->
                 <?php echo $error_html; ?>
@@ -830,7 +830,7 @@ class SBM_Gravity_Forms {
                     
                     <!-- Username / Iqama -->
                     <div style="margin-bottom: 24px;">
-                        <label for="sbm_username" style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;"><?php esc_html_e( 'Iqaama/Passport No.', 'safety-badges-manager' ); ?></label>
+                        <label for="sbm_username" style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;"><?php esc_html_e( 'Iqaama No.', 'safety-badges-manager' ); ?></label>
                         <input type="text" id="sbm_username" name="sbm_username" required placeholder="e.g. 123456789" style="width: 100%; padding: 12px 14px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; color: #0f172a; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s;" onfocus="this.style.borderColor='#0f172a'; this.style.boxShadow='0 0 0 3px rgba(15, 23, 42, 0.08)';" onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';" />
                     </div>
 
@@ -895,7 +895,7 @@ class SBM_Gravity_Forms {
         }
 
         $columns['sbm_user_name']    = esc_html__( 'Employee Name', 'safety-badges-manager' );
-        $columns['sbm_user_iqama']   = esc_html__( 'Iqaama/Passport No.', 'safety-badges-manager' );
+        $columns['sbm_user_iqama']   = esc_html__( 'Iqaama No.', 'safety-badges-manager' );
         $columns['sbm_user_company'] = esc_html__( 'Company', 'safety-badges-manager' );
 
         return $columns;
@@ -945,7 +945,7 @@ class SBM_Gravity_Forms {
         );
         $export_fields[] = array(
             'id'    => 'sbm_export_user_iqama',
-            'label' => esc_html__( 'Iqaama/Passport No.', 'safety-badges-manager' )
+            'label' => esc_html__( 'Iqaama No.', 'safety-badges-manager' )
         );
         $export_fields[] = array(
             'id'    => 'sbm_export_user_company',
@@ -1096,7 +1096,7 @@ class SBM_Gravity_Forms {
                             <form method="post" action="" style="text-align: left;">
                                 <?php wp_nonce_field( 'sbm_login_action', 'sbm_login_nonce' ); ?>
                                 <div style="margin-bottom: 24px;">
-                                    <label for="sbm_username" style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;"><?php esc_html_e( 'Iqaama/Passport No.', 'safety-badges-manager' ); ?></label>
+                                    <label for="sbm_username" style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;"><?php esc_html_e( 'Iqaama No.', 'safety-badges-manager' ); ?></label>
                                     <input type="text" id="sbm_username" name="sbm_username" required placeholder="e.g. 123456789" style="width: 100%; padding: 12px 14px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; color: #0f172a; box-sizing: border-box;" />
                                 </div>
                                 <input type="hidden" name="sbm_password" value="111111" />

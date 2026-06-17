@@ -782,7 +782,7 @@ class SBM_Admin {
                 fputcsv($output, array(
                     'Employee Name',
                     'Email Address',
-                    'Iqaama/Passport No.',
+                    'Iqaama No.',
                     'Company',
                     'Compliance Status',
                     'Active Badge #',
@@ -844,7 +844,7 @@ class SBM_Admin {
                 fputcsv($output, array(
                     'Entry ID',
                     'Employee Name',
-                    'Iqaama/Passport No.',
+                    'Iqaama No.',
                     'Company',
                     'Form ID',
                     'Quiz Title',
