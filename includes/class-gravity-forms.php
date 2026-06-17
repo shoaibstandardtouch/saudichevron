@@ -803,16 +803,17 @@ class SBM_Gravity_Forms {
         }
 
         ob_start();
+        echo $this->get_portal_styles();
         ?>
-        <div class="sbm-login-wrapper" style="width: 100%; max-width: 450px; margin: 40px auto; padding: 0 15px; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif;">
-            <div class="sbm-login-card" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); padding: 35px 30px; text-align: center;">
+        <div class="sbm-login-wrapper">
+            <div class="sbm-login-card">
                 
                 <!-- Logo -->
-                <div class="sbm-login-logo" style="margin-bottom: 25px;">
+                <div class="sbm-login-logo">
                     <?php if ( ! empty( $logo_img_src ) ) : ?>
-                        <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="height: 40px; max-width: 100%; object-fit: contain;" />
+                        <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" />
                     <?php else : ?>
-                        <span style="font-size: 24px; font-weight: 800; letter-spacing: 1.5px; color: #0f172a;">S-CHEM</span>
+                        <span>S-CHEM</span>
                     <?php endif; ?>
                 </div>
 
@@ -991,6 +992,18 @@ class SBM_Gravity_Forms {
             $this->render_portal_page();
             exit;
         }
+
+        // Intercept registration page
+        if ( ! is_user_logged_in() ) {
+            global $wpdb;
+            $post_id = $wpdb->get_var(
+                "SELECT ID FROM $wpdb->posts WHERE post_status = 'publish' AND post_content LIKE '%[gravityform%' AND post_content LIKE '%id=\"5\"%' LIMIT 1"
+            );
+            if ( $post_id && is_page( intval( $post_id ) ) ) {
+                $this->render_registration_page();
+                exit;
+            }
+        }
     }
 
     /**
@@ -1043,81 +1056,7 @@ class SBM_Gravity_Forms {
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title><?php esc_html_e( 'Safety Training Portal - Saudi Chevron Phillips', 'safety-badges-manager' ); ?></title>
                 <?php wp_head(); ?>
-                <style>
-                    body.sbm-portal-body {
-                        background-color: #f1f5f9 !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-                        color: #1e293b !important;
-                    }
-                    body.sbm-portal-body * {
-                        box-sizing: border-box !important;
-                    }
-                    .sbm-landing-split {
-                        display: grid;
-                        grid-template-columns: 1.2fr 1fr;
-                        min-height: 100vh;
-                    }
-                    @media (max-width: 900px) {
-                        .sbm-landing-split {
-                            grid-template-columns: 1fr;
-                        }
-                        .sbm-landing-banner {
-                            display: none !important;
-                        }
-                    }
-                    .sbm-landing-banner {
-                        background-color: #0f172a;
-                        color: #ffffff;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        padding: 80px;
-                        position: relative;
-                        background-image: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
-                    }
-                    .sbm-landing-banner h1 {
-                        font-size: 38px;
-                        font-weight: 800;
-                        margin-bottom: 20px;
-                        line-height: 1.2;
-                        color: #ffffff;
-                    }
-                    .sbm-landing-banner p {
-                        font-size: 16px;
-                        color: #94a3b8;
-                        line-height: 1.6;
-                        max-width: 500px;
-                        margin-bottom: 30px;
-                    }
-                    .sbm-landing-form-side {
-                        background-color: #ffffff;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 40px 20px;
-                    }
-                    .sbm-login-card {
-                        width: 100%;
-                        max-width: 400px;
-                        text-align: center;
-                    }
-                    .sbm-login-logo {
-                        margin-bottom: 30px;
-                    }
-                    .sbm-login-logo img {
-                        height: 45px;
-                        max-width: 100%;
-                        object-fit: contain;
-                    }
-                    .sbm-login-logo span {
-                        font-size: 26px;
-                        font-weight: 800;
-                        letter-spacing: 2px;
-                        color: #0f172a;
-                    }
-                </style>
+                <?php echo $this->get_portal_styles(); ?>
             </head>
             <body class="sbm-portal-body">
                 <div class="sbm-landing-split">
@@ -1201,85 +1140,7 @@ class SBM_Gravity_Forms {
                     <meta name="viewport" content="width=device-width, initial-scale=1">
                     <title><?php echo esc_html( $form['title'] ); ?> - S-Chem Portal</title>
                     <?php wp_head(); ?>
-                    <style>
-                        body.sbm-portal-body {
-                            background-color: #f1f5f9 !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-                            color: #1e293b !important;
-                        }
-                        body.sbm-portal-body * {
-                            box-sizing: border-box !important;
-                        }
-                        .sbm-portal-wrapper {
-                            min-height: 100vh;
-                            display: flex;
-                            flex-direction: column;
-                        }
-                        .sbm-portal-header {
-                            background-color: #0f172a;
-                            color: #ffffff;
-                            padding: 15px 30px;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-                        }
-                        .sbm-portal-header .brand {
-                            display: flex;
-                            align-items: center;
-                            gap: 12px;
-                        }
-                        .sbm-portal-header .brand img {
-                            height: 35px;
-                            max-width: 100%;
-                            object-fit: contain;
-                        }
-                        .sbm-portal-header .brand-text {
-                            font-size: 18px;
-                            font-weight: 800;
-                            letter-spacing: 1px;
-                        }
-                        .sbm-portal-header .btn-back {
-                            border: 1.5px solid #cbd5e1;
-                            color: #cbd5e1;
-                            padding: 6px 14px;
-                            border-radius: 6px;
-                            font-size: 13px;
-                            font-weight: 600;
-                            text-decoration: none;
-                            transition: all 0.2s;
-                        }
-                        .sbm-portal-header .btn-back:hover {
-                            background-color: #ffffff;
-                            color: #0f172a;
-                            border-color: #ffffff;
-                        }
-                        .sbm-portal-content {
-                            flex: 1;
-                            max-width: 800px;
-                            width: 100%;
-                            margin: 40px auto;
-                            padding: 0 20px;
-                        }
-                        .sbm-portal-card {
-                            background-color: #ffffff;
-                            border: 1px solid #e2e8f0;
-                            border-radius: 12px;
-                            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-                            padding: 30px;
-                        }
-                        .sbm-portal-card h3 {
-                            margin-top: 0;
-                            margin-bottom: 20px;
-                            font-size: 20px;
-                            font-weight: 700;
-                            color: #0f172a;
-                            border-bottom: 1px solid #f1f5f9;
-                            padding-bottom: 15px;
-                        }
-                    </style>
+                    <?php echo $this->get_portal_styles(); ?>
                 </head>
                 <body class="sbm-portal-body">
                     <div class="sbm-portal-wrapper">
@@ -1360,258 +1221,7 @@ class SBM_Gravity_Forms {
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title><?php esc_html_e( 'Employee Dashboard - S-Chem Portal', 'safety-badges-manager' ); ?></title>
             <?php wp_head(); ?>
-            <style>
-                body.sbm-portal-body {
-                    background-color: #f1f5f9 !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-                    color: #1e293b !important;
-                }
-                body.sbm-portal-body * {
-                    box-sizing: border-box !important;
-                }
-                .sbm-portal-wrapper {
-                    min-height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                }
-                .sbm-portal-header {
-                    background-color: #0f172a;
-                    color: #ffffff;
-                    padding: 15px 30px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-                }
-                .sbm-portal-header .brand {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                }
-                .sbm-portal-header .brand img {
-                    height: 35px;
-                    max-width: 100%;
-                    object-fit: contain;
-                }
-                .sbm-portal-header .brand-text {
-                    font-size: 18px;
-                    font-weight: 800;
-                    letter-spacing: 1px;
-                }
-                .sbm-portal-header .user-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 20px;
-                }
-                .sbm-portal-header .user-name {
-                    font-size: 14px;
-                    font-weight: 600;
-                }
-                .sbm-portal-header .btn-logout {
-                    border: 1.5px solid #ef4444;
-                    color: #ef4444;
-                    padding: 6px 14px;
-                    border-radius: 6px;
-                    font-size: 13px;
-                    font-weight: 600;
-                    text-decoration: none;
-                    transition: all 0.2s;
-                }
-                .sbm-portal-header .btn-logout:hover {
-                    background-color: #ef4444;
-                    color: #ffffff;
-                }
-                .sbm-portal-content {
-                    flex: 1;
-                    max-width: 1200px;
-                    width: 100%;
-                    margin: 40px auto;
-                    padding: 0 20px;
-                }
-                .sbm-portal-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 2fr;
-                    grid-gap: 30px;
-                }
-                @media (max-width: 900px) {
-                    .sbm-portal-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-                .sbm-portal-card {
-                    background-color: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 12px;
-                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-                    padding: 25px;
-                    margin-bottom: 30px;
-                }
-                .sbm-portal-card h3 {
-                    margin-top: 0;
-                    margin-bottom: 20px;
-                    font-size: 18px;
-                    font-weight: 700;
-                    color: #0f172a;
-                    border-bottom: 1px solid #f1f5f9;
-                    padding-bottom: 15px;
-                }
-                .sbm-visual-badge {
-                    border: 2px solid #0f172a;
-                    border-radius: 12px;
-                    background: #ffffff;
-                    overflow: hidden;
-                    max-width: 300px;
-                    margin: 0 auto 20px auto;
-                    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-                }
-                .sbm-visual-badge .badge-header {
-                    background-color: #0f172a;
-                    color: #ffffff;
-                    padding: 10px;
-                    text-align: center;
-                    font-size: 11px;
-                    font-weight: 800;
-                    letter-spacing: 1.5px;
-                }
-                .sbm-visual-badge .badge-body {
-                    padding: 20px 15px;
-                    text-align: center;
-                }
-                .sbm-visual-badge .badge-avatar {
-                    width: 90px;
-                    height: 90px;
-                    border-radius: 50%;
-                    margin-bottom: 15px;
-                    border: 2px solid #e2e8f0;
-                    object-fit: cover;
-                }
-                .sbm-visual-badge .badge-name {
-                    font-size: 16px;
-                    font-weight: 700;
-                    color: #0f172a;
-                    margin: 0 0 5px 0;
-                }
-                .sbm-visual-badge .badge-meta {
-                    font-size: 12px;
-                    color: #64748b;
-                    margin: 2px 0;
-                }
-                .sbm-visual-badge .badge-number {
-                    font-family: monospace;
-                    font-size: 13px;
-                    font-weight: 700;
-                    color: #0f172a;
-                    background-color: #f1f5f9;
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    display: inline-block;
-                    margin: 10px 0;
-                }
-                .sbm-visual-badge .badge-status-tag {
-                    font-size: 10px;
-                    font-weight: 800;
-                    padding: 3px 10px;
-                    border-radius: 12px;
-                    text-transform: uppercase;
-                    display: inline-block;
-                }
-                .sbm-visual-badge .status-active {
-                    background-color: #ecfdf5;
-                    color: #065f46;
-                    border: 1px solid #a7f3d0;
-                }
-                .sbm-visual-badge .status-expired {
-                    background-color: #fef2f2;
-                    color: #991b1b;
-                    border: 1px solid #fca5a5;
-                }
-                .sbm-quizzes-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-                    grid-gap: 20px;
-                }
-                .sbm-quiz-item-card {
-                    border: 1px solid #cbd5e1;
-                    border-radius: 8px;
-                    padding: 20px;
-                    background-color: #f8fafc;
-                    transition: all 0.2s;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    min-height: 180px;
-                }
-                .sbm-quiz-item-card:hover {
-                    border-color: #0f172a;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-                }
-                .sbm-quiz-item-card h4 {
-                    margin: 0 0 10px 0;
-                    font-size: 15px;
-                    font-weight: 700;
-                    color: #0f172a;
-                }
-                .sbm-quiz-item-card .meta {
-                    font-size: 12px;
-                    color: #64748b;
-                    margin-bottom: 20px;
-                }
-                .sbm-quiz-item-card .btn-start {
-                    display: block;
-                    text-align: center;
-                    background-color: #0f172a;
-                    color: #ffffff;
-                    text-decoration: none;
-                    font-size: 13px;
-                    font-weight: 600;
-                    padding: 10px;
-                    border-radius: 6px;
-                    transition: background-color 0.2s;
-                }
-                .sbm-quiz-item-card .btn-start:hover {
-                    background-color: #1e293b;
-                }
-                .sbm-history-table-container {
-                    overflow-x: auto;
-                }
-                .sbm-history-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    text-align: left;
-                }
-                .sbm-history-table th, .sbm-history-table td {
-                    padding: 12px 15px;
-                    border-bottom: 1px solid #cbd5e1;
-                    font-size: 13px;
-                }
-                .sbm-history-table th {
-                    background-color: #f1f5f9;
-                    color: #475569;
-                    font-weight: 600;
-                }
-                .sbm-history-table tr:hover {
-                    background-color: #f8fafc;
-                }
-                .sbm-status-tag {
-                    font-size: 10px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    padding: 2px 8px;
-                    border-radius: 4px;
-                    display: inline-block;
-                }
-                .sbm-status-tag.pass {
-                    background-color: #d1fae5;
-                    color: #065f46;
-                }
-                .sbm-status-tag.fail {
-                    background-color: #fee2e2;
-                    color: #991b1b;
-                }
-            </style>
+            <?php echo $this->get_portal_styles(); ?>
         </head>
         <body class="sbm-portal-body">
             <div class="sbm-portal-wrapper">
@@ -1729,5 +1339,606 @@ class SBM_Gravity_Forms {
         </body>
         </html>
         <?php
+    }
+
+    /**
+     * Render the custom user registration page using a cohesive split layout.
+     */
+    private function render_registration_page() {
+        $logo_path_png  = SBM_PATH . 'assets/schem-logo.png';
+        $logo_path_jpg  = SBM_PATH . 'assets/schem-logo.jpg';
+        $logo_path_jpeg = SBM_PATH . 'assets/schem-logo.jpeg';
+        $logo_img_src   = '';
+
+        $logo_file = '';
+        $logo_mime = 'image/png';
+
+        if ( file_exists( $logo_path_png ) ) {
+            $logo_file = $logo_path_png;
+            $logo_mime = 'image/png';
+        } elseif ( file_exists( $logo_path_jpg ) ) {
+            $logo_file = $logo_path_jpg;
+            $logo_mime = 'image/jpeg';
+        } elseif ( file_exists( $logo_path_jpeg ) ) {
+            $logo_file = $logo_path_jpeg;
+            $logo_mime = 'image/jpeg';
+        }
+
+        if ( ! empty( $logo_file ) ) {
+            $logo_data = file_get_contents( $logo_file );
+            if ( $logo_data !== false ) {
+                $logo_img_src = 'data:' . $logo_mime . ';base64,' . base64_encode( $logo_data );
+            }
+        }
+
+        ?>
+        <!DOCTYPE html>
+        <html <?php language_attributes(); ?>>
+        <head>
+            <meta charset="<?php bloginfo( 'charset' ); ?>">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title><?php esc_html_e( 'Register - Safety Training Portal', 'safety-badges-manager' ); ?></title>
+            <?php wp_head(); ?>
+            <?php echo $this->get_portal_styles(); ?>
+        </head>
+        <body class="sbm-portal-body">
+            <div class="sbm-landing-split">
+                <!-- Left Banner -->
+                <div class="sbm-landing-banner">
+                    <div style="margin-bottom: 40px;">
+                        <?php if ( ! empty( $logo_img_src ) ) : ?>
+                            <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="height: 50px; filter: brightness(0) invert(1);" />
+                        <?php else : ?>
+                            <span style="font-size: 24px; font-weight: 800; letter-spacing: 1.5px; color: #ffffff;">S-CHEM</span>
+                        <?php endif; ?>
+                    </div>
+                    <h1><?php esc_html_e( 'Employee Safety Certification Portal', 'safety-badges-manager' ); ?></h1>
+                    <p><?php esc_html_e( 'S-Chem is committed to maintaining the highest safety standards. Access active safety quizzes, manage your credentials, and verify your certification badges from this dashboard.', 'safety-badges-manager' ); ?></p>
+                    <div style="font-size: 13px; color: #64748b;">&copy; <?php echo date('Y'); ?> Saudi Chevron Phillips (S-Chem). All rights reserved.</div>
+                </div>
+
+                <!-- Right Registration Form -->
+                <div class="sbm-landing-form-side">
+                    <div class="sbm-login-card" style="max-width: 500px;">
+                        <div class="sbm-login-logo">
+                            <?php if ( ! empty( $logo_img_src ) ) : ?>
+                                <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" />
+                            <?php else : ?>
+                                <span>S-CHEM</span>
+                            <?php endif; ?>
+                        </div>
+                        <h3 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;"><?php esc_html_e( 'Employee Registration', 'safety-badges-manager' ); ?></h3>
+                        <p style="font-size: 14px; color: #64748b; margin: 0 0 30px 0;"><?php esc_html_e( 'Register your account to start appearing for safety quizzes.', 'safety-badges-manager' ); ?></p>
+
+                        <?php
+                        // Render Gravity Form ID 5 (Registration Form)
+                        gravity_form( 5, false, false, false, null, true );
+                        ?>
+
+                        <div style="margin: 30px 0; border-top: 1px solid #e2e8f0; position: relative;">
+                            <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background-color: #ffffff; padding: 0 10px; font-size: 12px; color: #94a3b8; text-transform: uppercase;"><?php esc_html_e( 'or', 'safety-badges-manager' ); ?></span>
+                        </div>
+
+                        <p style="font-size: 14px; color: #64748b; margin: 0;">
+                            <?php esc_html_e( 'Already registered?', 'safety-badges-manager' ); ?>
+                            <a href="<?php echo esc_url( home_url( '/' ) ); ?>" style="color: #dc2626; font-weight: 600; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#b91c1c';" onmouseout="this.style.color='#dc2626';"><?php esc_html_e( 'Login Here', 'safety-badges-manager' ); ?></a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <?php wp_footer(); ?>
+        </body>
+        </html>
+        <?php
+    }
+
+    /**
+     * Get the consolidated CSS styles for the Employee Portal frontend pages.
+     */
+    private function get_portal_styles() {
+        ob_start();
+        ?>
+        <style>
+            /* Base reset & theme colors */
+            body.sbm-portal-body {
+                background-color: #f1f5f9 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+                color: #1e293b !important;
+            }
+            body.sbm-portal-body * {
+                box-sizing: border-box !important;
+            }
+
+            /* Split layout for Guest Landing & Registration */
+            .sbm-landing-split {
+                display: grid;
+                grid-template-columns: 1.2fr 1fr;
+                min-height: 100vh;
+            }
+            .sbm-landing-banner {
+                background-color: #0f172a;
+                color: #ffffff;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                padding: 80px;
+                position: relative;
+                background-image: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
+            }
+            .sbm-landing-banner h1 {
+                font-size: 38px;
+                font-weight: 800;
+                margin-bottom: 20px;
+                line-height: 1.2;
+                color: #ffffff;
+            }
+            .sbm-landing-banner p {
+                font-size: 16px;
+                color: #94a3b8;
+                line-height: 1.6;
+                max-width: 500px;
+                margin-bottom: 30px;
+            }
+            .sbm-landing-form-side {
+                background-color: #ffffff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 40px 20px;
+            }
+            .sbm-login-card {
+                width: 100%;
+                max-width: 400px;
+                text-align: center;
+            }
+            .sbm-login-logo {
+                margin-bottom: 30px;
+            }
+            .sbm-login-logo img {
+                height: 45px;
+                max-width: 100%;
+                object-fit: contain;
+            }
+            .sbm-login-logo span {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: 2px;
+                color: #0f172a;
+            }
+
+            /* Portal Layout */
+            .sbm-portal-wrapper {
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
+            .sbm-portal-header {
+                background-color: #0f172a;
+                color: #ffffff;
+                padding: 15px 30px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            }
+            .sbm-portal-header .brand {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            .sbm-portal-header .brand img {
+                height: 35px;
+                max-width: 100%;
+                object-fit: contain;
+            }
+            .sbm-portal-header .brand-text {
+                font-size: 18px;
+                font-weight: 800;
+                letter-spacing: 1px;
+            }
+            .sbm-portal-header .user-info {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+            }
+            .sbm-portal-header .user-name {
+                font-size: 14px;
+                font-weight: 600;
+            }
+            .sbm-portal-header .btn-logout {
+                border: 1.5px solid #ef4444;
+                color: #ef4444;
+                padding: 6px 14px;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 600;
+                text-decoration: none;
+                transition: all 0.2s;
+            }
+            .sbm-portal-header .btn-logout:hover {
+                background-color: #ef4444;
+                color: #ffffff;
+            }
+            .sbm-portal-header .btn-back {
+                border: 1.5px solid #cbd5e1;
+                color: #cbd5e1;
+                padding: 6px 14px;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 600;
+                text-decoration: none;
+                transition: all 0.2s;
+            }
+            .sbm-portal-header .btn-back:hover {
+                background-color: #ffffff;
+                color: #0f172a;
+                border-color: #ffffff;
+            }
+
+            .sbm-portal-content {
+                flex: 1;
+                max-width: 1200px;
+                width: 100%;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+            .sbm-portal-grid {
+                display: grid;
+                grid-template-columns: 1fr 2fr;
+                grid-gap: 30px;
+            }
+            .sbm-portal-card {
+                background-color: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+                padding: 25px;
+                margin-bottom: 30px;
+            }
+            .sbm-portal-card h3 {
+                margin-top: 0;
+                margin-bottom: 20px;
+                font-size: 18px;
+                font-weight: 700;
+                color: #0f172a;
+                border-bottom: 1px solid #f1f5f9;
+                padding-bottom: 15px;
+            }
+
+            /* Badge display styles */
+            .sbm-visual-badge {
+                border: 2px solid #0f172a;
+                border-radius: 12px;
+                background: #ffffff;
+                overflow: hidden;
+                max-width: 300px;
+                margin: 0 auto 20px auto;
+                box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            }
+            .sbm-visual-badge .badge-header {
+                background-color: #0f172a;
+                color: #ffffff;
+                padding: 10px;
+                text-align: center;
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 1.5px;
+            }
+            .sbm-visual-badge .badge-body {
+                padding: 20px 15px;
+                text-align: center;
+            }
+            .sbm-visual-badge .badge-avatar {
+                width: 90px;
+                height: 90px;
+                border-radius: 50%;
+                margin-bottom: 15px;
+                border: 2px solid #e2e8f0;
+                object-fit: cover;
+            }
+            .sbm-visual-badge .badge-name {
+                font-size: 16px;
+                font-weight: 700;
+                color: #0f172a;
+                margin: 0 0 5px 0;
+            }
+            .sbm-visual-badge .badge-meta {
+                font-size: 12px;
+                color: #64748b;
+                margin: 2px 0;
+            }
+            .sbm-visual-badge .badge-number {
+                font-family: monospace;
+                font-size: 13px;
+                font-weight: 700;
+                color: #0f172a;
+                background-color: #f1f5f9;
+                padding: 4px 8px;
+                border-radius: 4px;
+                display: inline-block;
+                margin: 10px 0;
+            }
+            .sbm-visual-badge .badge-status-tag {
+                font-size: 10px;
+                font-weight: 800;
+                padding: 3px 10px;
+                border-radius: 12px;
+                text-transform: uppercase;
+                display: inline-block;
+            }
+            .sbm-visual-badge .status-active {
+                background-color: #ecfdf5;
+                color: #065f46;
+                border: 1px solid #a7f3d0;
+            }
+            .sbm-visual-badge .status-expired {
+                background-color: #fef2f2;
+                color: #991b1b;
+                border: 1px solid #fca5a5;
+            }
+
+            /* Quizzes Grid */
+            .sbm-quizzes-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                grid-gap: 20px;
+            }
+            .sbm-quiz-item-card {
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                padding: 20px;
+                background-color: #f8fafc;
+                transition: all 0.2s;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                min-height: 180px;
+            }
+            .sbm-quiz-item-card:hover {
+                border-color: #0f172a;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            }
+            .sbm-quiz-item-card h4 {
+                margin: 0 0 10px 0;
+                font-size: 15px;
+                font-weight: 700;
+                color: #0f172a;
+            }
+            .sbm-quiz-item-card .meta {
+                font-size: 12px;
+                color: #64748b;
+                margin-bottom: 20px;
+            }
+            .sbm-quiz-item-card .btn-start {
+                display: block;
+                text-align: center;
+                background-color: #0f172a;
+                color: #ffffff;
+                text-decoration: none;
+                font-size: 13px;
+                font-weight: 600;
+                padding: 10px;
+                border-radius: 6px;
+                transition: background-color 0.2s;
+            }
+            .sbm-quiz-item-card .btn-start:hover {
+                background-color: #1e293b;
+            }
+
+            /* Attempt History */
+            .sbm-history-table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .sbm-history-table {
+                width: 100%;
+                border-collapse: collapse;
+                text-align: left;
+            }
+            .sbm-history-table th, .sbm-history-table td {
+                padding: 12px 15px;
+                border-bottom: 1px solid #cbd5e1;
+                font-size: 13px;
+            }
+            .sbm-history-table th {
+                background-color: #f1f5f9;
+                color: #475569;
+                font-weight: 600;
+            }
+            .sbm-history-table tr:hover {
+                background-color: #f8fafc;
+            }
+            .sbm-status-tag {
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                padding: 2px 8px;
+                border-radius: 4px;
+                display: inline-block;
+            }
+            .sbm-status-tag.pass {
+                background-color: #d1fae5;
+                color: #065f46;
+            }
+            .sbm-status-tag.fail {
+                background-color: #fee2e2;
+                color: #991b1b;
+            }
+
+            /* Gravity Forms General Styling to match Premium UI */
+            .gform_wrapper {
+                text-align: left;
+            }
+            .gform_wrapper .gform_heading {
+                display: none !important;
+            }
+            .gform_wrapper input[type="text"],
+            .gform_wrapper input[type="email"],
+            .gform_wrapper input[type="password"],
+            .gform_wrapper select {
+                width: 100% !important;
+                padding: 12px 14px !important;
+                border: 1.5px solid #cbd5e1 !important;
+                border-radius: 8px !important;
+                font-size: 14px !important;
+                color: #0f172a !important;
+                box-sizing: border-box !important;
+                transition: border-color 0.2s, box-shadow 0.2s !important;
+                background-color: #ffffff !important;
+            }
+            .gform_wrapper input[type="text"]:focus,
+            .gform_wrapper input[type="email"]:focus,
+            .gform_wrapper input[type="password"]:focus,
+            .gform_wrapper select:focus {
+                border-color: #0f172a !important;
+                box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08) !important;
+                outline: none !important;
+            }
+            .gform_wrapper .gfield_label {
+                display: block !important;
+                font-size: 13px !important;
+                font-weight: 600 !important;
+                color: #334155 !important;
+                margin-bottom: 6px !important;
+            }
+            .gform_wrapper .gform_button,
+            .gform_wrapper input[type="submit"] {
+                width: 100% !important;
+                padding: 12px !important;
+                background-color: #0f172a !important;
+                color: #ffffff !important;
+                border: none !important;
+                border-radius: 8px !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                cursor: pointer !important;
+                transition: background-color 0.2s !important;
+                box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.1) !important;
+            }
+            .gform_wrapper .gform_button:hover,
+            .gform_wrapper input[type="submit"]:hover {
+                background-color: #1e293b !important;
+            }
+            .gform_wrapper .gfield_required {
+                color: #dc2626 !important;
+                margin-left: 4px;
+            }
+            .gform_wrapper .gfield_description {
+                font-size: 11px !important;
+                color: #64748b !important;
+                margin-top: 4px !important;
+            }
+            .gform_wrapper .validation_message {
+                color: #dc2626 !important;
+                font-size: 12px !important;
+                margin-top: 4px !important;
+            }
+            .gform_wrapper .gfield_error input {
+                border-color: #fca5a5 !important;
+                background-color: #fef2f2 !important;
+            }
+
+            /* Responsive Overrides */
+            @media (max-width: 900px) {
+                .sbm-landing-split {
+                    grid-template-columns: 1fr;
+                }
+                .sbm-landing-banner {
+                    display: none !important;
+                }
+                .sbm-portal-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @media (max-width: 600px) {
+                .sbm-portal-header {
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 15px 15px;
+                    text-align: center;
+                }
+                .sbm-portal-header .brand {
+                    flex-direction: column;
+                    gap: 4px;
+                }
+                .sbm-portal-header .brand-text {
+                    font-size: 16px;
+                }
+                .sbm-portal-header .user-info {
+                    flex-direction: column;
+                    gap: 8px;
+                    width: 100%;
+                }
+                .sbm-portal-header .user-name {
+                    display: block;
+                }
+                .sbm-portal-header .btn-logout,
+                .sbm-portal-header .btn-back {
+                    display: inline-block;
+                    width: 100%;
+                    max-width: 180px;
+                    text-align: center;
+                }
+                .sbm-portal-content {
+                    margin: 15px auto;
+                    padding: 0 10px;
+                }
+                .sbm-portal-card {
+                    padding: 15px;
+                    margin-bottom: 20px;
+                }
+                
+                /* Gravity Forms CSS Grid layout mobile collapse */
+                .gform_wrapper .gform_fields {
+                    grid-template-columns: 1fr !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 16px !important;
+                }
+                .gform_wrapper .gfield {
+                    grid-column: span 12 !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                }
+                .gform_wrapper .gform-grid-col {
+                    grid-column: span 12 !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                }
+                
+                /* Legacy grid classes */
+                .gform_wrapper .gfield--width-half,
+                .gform_wrapper .gfield--width-third,
+                .gform_wrapper .gfield--width-quarter,
+                .gform_wrapper .gfield--width-two-thirds,
+                .gform_wrapper .gfield--width-three-quarters {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    float: none !important;
+                    clear: both !important;
+                    margin-left: 0 !important;
+                    margin-right: 0 !important;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .sbm-landing-form-side {
+                    padding: 30px 15px;
+                }
+                .sbm-login-card {
+                    padding: 25px 15px;
+                }
+                .sbm-quizzes-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+        <?php
+        return ob_get_clean();
     }
 }
