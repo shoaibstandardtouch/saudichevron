@@ -37,6 +37,7 @@ class SBM_Admin {
         
         // Handle admin actions (e.g. manual status updates)
         add_action( 'admin_post_sbm_update_status', array( $this, 'handle_manual_status_update' ) );
+        add_action( 'admin_post_sbm_update_employee_settings', array( $this, 'handle_employee_settings_update' ) );
 
         // Restrict admin dashboard access for non-admin users (subscribers/employees)
         add_action( 'admin_init', array( $this, 'restrict_admin_access' ) );
@@ -88,6 +89,15 @@ class SBM_Admin {
             'safety-reports',
             array( $this, 'render_reports_page' )
         );
+
+        add_submenu_page(
+            'safety-training',
+            esc_html__( 'Settings', 'safety-badges-manager' ),
+            esc_html__( 'Settings', 'safety-badges-manager' ),
+            'manage_options',
+            'safety-settings',
+            array( $this, 'render_settings_page' )
+        );
     }
 
     /**
@@ -95,7 +105,7 @@ class SBM_Admin {
      */
     public function enqueue_admin_assets( $hook ) {
         // Enqueue only on our plugin pages
-        if ( strpos( $hook, 'safety-training' ) === false && strpos( $hook, 'safety-employees' ) === false && strpos( $hook, 'safety-reports' ) === false ) {
+        if ( strpos( $hook, 'safety-training' ) === false && strpos( $hook, 'safety-employees' ) === false && strpos( $hook, 'safety-reports' ) === false && strpos( $hook, 'safety-settings' ) === false ) {
             return;
         }
 
@@ -598,14 +608,26 @@ class SBM_Admin {
         // Fetch test submissions using Gravity Forms API
         $attempts = array();
         if ( class_exists( 'GFAPI' ) ) {
+            $search_criteria = array(
+                'status'        => 'active',
+                'field_filters' => array(
+                    array(
+                        'key'   => 'created_by',
+                        'value' => $user_id,
+                    ),
+                ),
+            );
             $attempts = GFAPI::get_entries(
                 0,
-                array( 'created_by' => $user_id ),
+                $search_criteria,
                 array( 'key' => 'date_created', 'direction' => 'DESC' )
             );
         }
         ?>
         <div class="wrap sbm-employee-profile">
+            <?php if ( isset( $_GET['settings_updated'] ) ) : ?>
+                <div class="notice notice-success is-dismissible" style="margin-left: 0; margin-right: 0;"><p><?php esc_html_e( 'Employee settings updated successfully.', 'safety-badges-manager' ); ?></p></div>
+            <?php endif; ?>
             <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees' ) ); ?>" class="back-link">&larr; <?php esc_html_e( 'Back to Employee Records', 'safety-badges-manager' ); ?></a>
             
             <div class="profile-header-card sbm-card">
@@ -636,6 +658,43 @@ class SBM_Admin {
                         <?php endif; ?>
                     </div>
                 </div>
+            </div>
+
+            <!-- Employee Settings Card -->
+            <div class="sbm-card employee-settings-card" style="margin-bottom: 25px; margin-top: 25px;">
+                <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                    <?php esc_html_e( 'Employee Settings', 'safety-badges-manager' ); ?>
+                </h3>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <?php wp_nonce_field( 'sbm_save_employee_settings_' . $user_id, 'sbm_employee_settings_nonce' ); ?>
+                    <input type="hidden" name="action" value="sbm_update_employee_settings" />
+                    <input type="hidden" name="user_id" value="<?php echo esc_attr( $user_id ); ?>" />
+                    
+                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <label for="sbm_allow_badge_printing" style="font-weight: 600; display: block; margin-bottom: 5px;">
+                                <?php esc_html_e( 'Badge Printing Permission', 'safety-badges-manager' ); ?>
+                            </label>
+                            <?php
+                            $allow_printing = get_user_meta( $user_id, 'sbm_allow_badge_printing', true );
+                            if ( $allow_printing === '' ) {
+                                $allow_printing = 'yes';
+                            }
+                            ?>
+                            <select id="sbm_allow_badge_printing" name="sbm_allow_badge_printing" style="min-width: 150px;">
+                                <option value="yes" <?php selected( $allow_printing, 'yes' ); ?>><?php esc_html_e( 'Allowed', 'safety-badges-manager' ); ?></option>
+                                <option value="no" <?php selected( $allow_printing, 'no' ); ?>><?php esc_html_e( 'Disallowed', 'safety-badges-manager' ); ?></option>
+                            </select>
+                            <span class="description" style="display: inline-block; margin-left: 10px; vertical-align: middle;">
+                                <?php esc_html_e( 'Determine if this employee can print their badge from their portal.', 'safety-badges-manager' ); ?>
+                            </span>
+                        </div>
+                        
+                        <div>
+                            <input type="submit" name="save_employee_settings" class="button button-primary" style="background-color: #0f172a !important; border-color: #0f172a !important;" value="<?php esc_html_e( 'Save Settings', 'safety-badges-manager' ); ?>" />
+                        </div>
+                    </div>
+                </form>
             </div>
 
             <div class="profile-sections-grid">
@@ -719,6 +778,101 @@ class SBM_Admin {
     }
 
     /**
+     * Render SBM Global Settings page.
+     */
+    public function render_settings_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Unauthorized user.', 'safety-badges-manager' ) );
+        }
+
+        // Process saving of global settings
+        if ( isset( $_POST['save_sbm_global_settings'] ) ) {
+            check_admin_referer( 'sbm_save_global_settings' );
+
+            $global_printing  = isset( $_POST['sbm_global_allow_printing'] ) ? 'yes' : 'no';
+            $page_size        = isset( $_POST['sbm_pdf_page_size'] ) ? sanitize_text_field( $_POST['sbm_pdf_page_size'] ) : 'A4';
+            $page_orientation = isset( $_POST['sbm_pdf_page_orientation'] ) ? sanitize_text_field( $_POST['sbm_pdf_page_orientation'] ) : 'portrait';
+
+            update_option( 'sbm_global_allow_printing', $global_printing );
+            update_option( 'sbm_pdf_page_size', $page_size );
+            update_option( 'sbm_pdf_page_orientation', $page_orientation );
+
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Global settings saved successfully.', 'safety-badges-manager' ) . '</p></div>';
+        }
+
+        $global_printing  = get_option( 'sbm_global_allow_printing', 'yes' );
+        $page_size        = get_option( 'sbm_pdf_page_size', 'A4' );
+        $page_orientation = get_option( 'sbm_pdf_page_orientation', 'portrait' );
+        ?>
+        <div class="wrap sbm-settings-wrap">
+            <h1 class="wp-heading-inline"><?php esc_html_e( 'Safety Badges Settings', 'safety-badges-manager' ); ?></h1>
+            <hr class="wp-header-end">
+
+            <div class="sbm-card" style="max-width: 800px; margin-top: 20px;">
+                <h3 style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; font-size: 18px; color: #0f172a;">
+                    <?php esc_html_e( 'Global Printing Configuration', 'safety-badges-manager' ); ?>
+                </h3>
+                
+                <form method="post" action="">
+                    <?php wp_nonce_field( 'sbm_save_global_settings' ); ?>
+                    
+                    <table class="form-table">
+                        <!-- Global Print Toggle -->
+                        <tr valign="top">
+                            <th scope="row" style="width: 250px; font-weight: 600;">
+                                <label for="sbm_global_allow_printing"><?php esc_html_e( 'Enable Badge Printing Globally', 'safety-badges-manager' ); ?></label>
+                            </th>
+                            <td>
+                                <input type="checkbox" id="sbm_global_allow_printing" name="sbm_global_allow_printing" value="yes" <?php checked( $global_printing, 'yes' ); ?> />
+                                <span class="description" style="margin-left: 10px;">
+                                    <?php esc_html_e( 'Allow employees to download and print their badges from the employee portal dashboard.', 'safety-badges-manager' ); ?>
+                                </span>
+                            </td>
+                        </tr>
+
+                        <!-- Page Size -->
+                        <tr valign="top">
+                            <th scope="row" style="font-weight: 600;">
+                                <label for="sbm_pdf_page_size"><?php esc_html_e( 'Badge PDF Page Size', 'safety-badges-manager' ); ?></label>
+                            </th>
+                            <td>
+                                <select id="sbm_pdf_page_size" name="sbm_pdf_page_size">
+                                    <option value="A4" <?php selected( $page_size, 'A4' ); ?>>A4</option>
+                                    <option value="letter" <?php selected( $page_size, 'letter' ); ?>>Letter</option>
+                                </select>
+                                <p class="description" style="margin-top: 5px;">
+                                    <?php esc_html_e( 'Set the default page size for the printed safety badges sheet.', 'safety-badges-manager' ); ?>
+                                </p>
+                            </td>
+                        </tr>
+
+                        <!-- Page Orientation -->
+                        <tr valign="top">
+                            <th scope="row" style="font-weight: 600;">
+                                <label for="sbm_pdf_page_orientation"><?php esc_html_e( 'Badge PDF Page Orientation', 'safety-badges-manager' ); ?></label>
+                            </th>
+                            <td>
+                                <select id="sbm_pdf_page_orientation" name="sbm_pdf_page_orientation">
+                                    <option value="portrait" <?php selected( $page_orientation, 'portrait' ); ?>><?php esc_html_e( 'Portrait', 'safety-badges-manager' ); ?></option>
+                                    <option value="landscape" <?php selected( $page_orientation, 'landscape' ); ?>><?php esc_html_e( 'Landscape', 'safety-badges-manager' ); ?></option>
+                                </select>
+                                <p class="description" style="margin-top: 5px;">
+                                    <?php esc_html_e( 'Set the page orientation for the safety badges sheet.', 'safety-badges-manager' ); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <p class="submit" style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                        <input type="submit" name="save_sbm_global_settings" class="button button-primary" style="background-color: #0f172a !important; border-color: #0f172a !important;" value="<?php esc_html_e( 'Save Settings', 'safety-badges-manager' ); ?>" />
+                    </p>
+                </form>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
      * Handle manual badge status overrides (revoke / activate).
      */
     public function handle_manual_status_update() {
@@ -743,6 +897,30 @@ class SBM_Admin {
         // Redirect back to profile page
         $badge = $this->db->get_badge( $badge_id );
         wp_safe_redirect( admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $badge->user_id ) );
+    }
+
+    /**
+     * Handle saving of individual employee settings (e.g. printing toggle).
+     */
+    public function handle_employee_settings_update() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Unauthorized user.', 'safety-badges-manager' ) );
+        }
+
+        $user_id = isset( $_POST['user_id'] ) ? intval( $_POST['user_id'] ) : 0;
+        if ( ! $user_id ) {
+            wp_die( esc_html__( 'Invalid employee user ID.', 'safety-badges-manager' ) );
+        }
+
+        // Nonce check
+        check_admin_referer( 'sbm_save_employee_settings_' . $user_id, 'sbm_employee_settings_nonce' );
+
+        $allow_printing = isset( $_POST['sbm_allow_badge_printing'] ) && $_POST['sbm_allow_badge_printing'] === 'no' ? 'no' : 'yes';
+
+        update_user_meta( $user_id, 'sbm_allow_badge_printing', $allow_printing );
+
+        // Redirect back with success message
+        wp_safe_redirect( admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $user_id . '&settings_updated=1' ) );
         exit;
     }
 

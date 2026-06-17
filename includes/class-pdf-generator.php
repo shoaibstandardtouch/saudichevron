@@ -42,11 +42,25 @@ class SBM_PDF_Generator {
             if ( ! is_user_logged_in() ) {
                 wp_die( esc_html__( 'You must be logged in to print your badge.', 'safety-badges-manager' ) );
             }
+
+            // Check global printing setting
+            $global_printing = get_option( 'sbm_global_allow_printing', 'yes' );
+            if ( 'yes' !== $global_printing ) {
+                wp_die( esc_html__( 'Badge printing has been disabled by the administrator.', 'safety-badges-manager' ) );
+            }
+
+            // Check individual printing setting
+            $current_user_id = get_current_user_id();
+            $individual_printing = get_user_meta( $current_user_id, 'sbm_allow_badge_printing', true );
+            if ( $individual_printing === 'no' ) {
+                wp_die( esc_html__( 'Badge printing has been disabled for your account. Please contact an administrator.', 'safety-badges-manager' ) );
+            }
+
             $badge_ids = isset( $_GET['badges'] ) ? (array) $_GET['badges'] : array();
             $badge_ids = array_map( 'intval', $badge_ids );
             foreach ( $badge_ids as $id ) {
                 $badge = $this->db->get_badge( $id );
-                if ( $badge && intval( $badge->user_id ) !== get_current_user_id() ) {
+                if ( $badge && intval( $badge->user_id ) !== $current_user_id ) {
                     wp_die( esc_html__( 'You do not have permission to print this badge.', 'safety-badges-manager' ) );
                 }
             }
@@ -133,7 +147,11 @@ class SBM_PDF_Generator {
         $html = $this->build_badge_sheet_html( $employees_badges );
 
         $dompdf->loadHtml( $html );
-        $dompdf->setPaper( 'A4', 'portrait' );
+        
+        $page_size        = get_option( 'sbm_pdf_page_size', 'A4' );
+        $page_orientation = get_option( 'sbm_pdf_page_orientation', 'portrait' );
+        $dompdf->setPaper( $page_size, $page_orientation );
+        
         $dompdf->render();
 
         // Output the generated PDF to Browser

@@ -1274,9 +1274,18 @@ class SBM_Gravity_Forms {
         // Fetch history
         $user_attempts = array();
         if ( class_exists( 'GFAPI' ) ) {
+            $search_criteria = array(
+                'status'        => 'active',
+                'field_filters' => array(
+                    array(
+                        'key'   => 'created_by',
+                        'value' => $user_id,
+                    ),
+                ),
+            );
             $raw_attempts = GFAPI::get_entries(
                 0,
-                array( 'created_by' => $user_id ),
+                $search_criteria,
                 array( 'key' => 'date_created', 'direction' => 'DESC' )
             );
             foreach ( $raw_attempts as $attempt ) {
@@ -1373,7 +1382,22 @@ class SBM_Gravity_Forms {
                                             <p style="font-size: 11px; color: #64748b; margin-top: 10px;">Expires on: <?php echo date_i18n( get_option( 'date_format' ), strtotime( $active_badge->expiry_date ) ); ?></p>
                                         </div>
                                     </div>
-                                    <a href="<?php echo esc_url( admin_url( 'admin-post.php?action=sbm_print_badges&badges[]=' . $active_badge->id ) ); ?>" target="_blank" class="button button-primary" style="display: block; text-align: center; width: 100%; box-sizing: border-box; background-color: #0f172a !important; color: #ffffff !important; border: none; padding: 12px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: background-color 0.2s;"><span class="dashicons dashicons-printer" style="margin-right: 6px; font-size: 16px; width: 16px; height: 16px; line-height: 16px; vertical-align: middle;"></span> Print Badge PDF</a>
+                                    <?php
+                                    $global_printing     = get_option( 'sbm_global_allow_printing', 'yes' );
+                                    $individual_printing = get_user_meta( $user_id, 'sbm_allow_badge_printing', true );
+                                    if ( $individual_printing === '' ) {
+                                        $individual_printing = 'yes';
+                                    }
+
+                                    if ( 'yes' === $global_printing && 'yes' === $individual_printing ) :
+                                    ?>
+                                        <a href="<?php echo esc_url( admin_url( 'admin-post.php?action=sbm_print_badges&badges[]=' . $active_badge->id ) ); ?>" target="_blank" class="button button-primary" style="display: block; text-align: center; width: 100%; box-sizing: border-box; background-color: #0f172a !important; color: #ffffff !important; border: none; padding: 12px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: background-color 0.2s;"><span class="dashicons dashicons-printer" style="margin-right: 6px; font-size: 16px; width: 16px; height: 16px; line-height: 16px; vertical-align: middle;"></span> Print Badge PDF</a>
+                                    <?php else : ?>
+                                        <div style="background-color: #f1f5f9; color: #64748b; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 500; margin-top: 10px; border: 1px solid #e2e8f0; text-align: center;">
+                                            <span class="dashicons dashicons-lock" style="font-size: 16px; width: 16px; height: 16px; vertical-align: middle; margin-right: 4px; color: #94a3b8;"></span>
+                                            <?php esc_html_e( 'Badge printing is currently disabled.', 'safety-badges-manager' ); ?>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php else : ?>
                                     <div style="padding: 20px 0; color: #64748b;">
                                         <span class="dashicons dashicons-shield-alt" style="font-size: 48px; width: 48px; height: 48px; color: #94a3b8; margin-bottom: 10px;"></span>
