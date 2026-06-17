@@ -811,7 +811,7 @@ class SBM_Gravity_Forms {
                 <!-- Logo -->
                 <div class="sbm-login-logo">
                     <?php if ( ! empty( $logo_img_src ) ) : ?>
-                        <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" />
+                        <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="filter: none !important;" />
                     <?php else : ?>
                         <span>S-CHEM</span>
                     <?php endif; ?>
@@ -847,9 +847,9 @@ class SBM_Gravity_Forms {
                 </div>
 
                 <!-- Register Link -->
-                <p style="font-size: 13px; color: #64748b; margin: 0;">
+                <p style="font-size: 18px !important; color: #64748b; margin: 0; font-weight: 600;">
                     <?php esc_html_e( 'Not registered yet?', 'safety-badges-manager' ); ?>
-                    <a href="<?php echo esc_url( $reg_url ); ?>" style="color: #dc2626; font-weight: 600; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#b91c1c';" onmouseout="this.style.color='#dc2626';"><?php esc_html_e( 'Register Here', 'safety-badges-manager' ); ?></a>
+                    <a href="<?php echo esc_url( $reg_url ); ?>" style="color: #dc2626; font-weight: 700; text-decoration: none; transition: color 0.2s; font-size: 18px !important;" onmouseover="this.style.color='#b91c1c';" onmouseout="this.style.color='#dc2626';"><?php esc_html_e( 'Register Here', 'safety-badges-manager' ); ?></a>
                 </p>
 
             </div>
@@ -1064,7 +1064,7 @@ class SBM_Gravity_Forms {
                     <div class="sbm-landing-banner">
                         <div style="margin-bottom: 40px;">
                             <?php if ( ! empty( $logo_img_src ) ) : ?>
-                                <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="height: 50px; filter: brightness(0) invert(1);" />
+                                <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="filter: none !important;" />
                             <?php else : ?>
                                 <span style="font-size: 24px; font-weight: 800; letter-spacing: 1.5px; color: #ffffff;">S-CHEM</span>
                             <?php endif; ?>
@@ -1079,7 +1079,7 @@ class SBM_Gravity_Forms {
                         <div class="sbm-login-card">
                             <div class="sbm-login-logo">
                                 <?php if ( ! empty( $logo_img_src ) ) : ?>
-                                    <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" />
+                                    <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="filter: none !important;" />
                                 <?php else : ?>
                                     <span>S-CHEM</span>
                                 <?php endif; ?>
@@ -1107,9 +1107,9 @@ class SBM_Gravity_Forms {
                                 <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background-color: #ffffff; padding: 0 10px; font-size: 12px; color: #94a3b8; text-transform: uppercase;"><?php esc_html_e( 'or', 'safety-badges-manager' ); ?></span>
                             </div>
 
-                            <p style="font-size: 14px; color: #64748b; margin: 0;">
+                            <p style="font-size: 18px !important; color: #64748b; margin: 0; font-weight: 600;">
                                 <?php esc_html_e( 'Not registered yet?', 'safety-badges-manager' ); ?>
-                                <a href="<?php echo esc_url( $reg_url ); ?>" style="color: #dc2626; font-weight: 600; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#b91c1c';" onmouseout="this.style.color='#dc2626';"><?php esc_html_e( 'Register Here', 'safety-badges-manager' ); ?></a>
+                                <a href="<?php echo esc_url( $reg_url ); ?>" style="color: #dc2626; font-weight: 700; text-decoration: none; transition: color 0.2s; font-size: 18px !important;" onmouseover="this.style.color='#b91c1c';" onmouseout="this.style.color='#dc2626';"><?php esc_html_e( 'Register Here', 'safety-badges-manager' ); ?></a>
                             </p>
                         </div>
                     </div>
@@ -1147,7 +1147,7 @@ class SBM_Gravity_Forms {
                         <header class="sbm-portal-header">
                             <div class="brand">
                                 <?php if ( ! empty( $logo_img_src ) ) : ?>
-                                    <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="filter: brightness(0) invert(1);" />
+                                    <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="filter: none !important;" />
                                 <?php else : ?>
                                     <span class="brand-text">S-CHEM</span>
                                 <?php endif; ?>
@@ -1206,6 +1206,7 @@ class SBM_Gravity_Forms {
                     $is_pass = gform_get_meta( $attempt['id'], 'gquiz_is_pass' );
                     $user_attempts[] = array(
                         'date'       => $attempt['date_created'],
+                        'form_id'    => $f_id,
                         'form_title' => $f['title'],
                         'score'      => $score !== '' ? floatval( $score ) . '%' : '-',
                         'pass'       => $is_pass == '1'
@@ -1213,6 +1214,35 @@ class SBM_Gravity_Forms {
                 }
             }
         }
+
+        // Build a list of passed and attempted form IDs for this user
+        $passed_form_ids = array();
+        $attempted_form_ids = array();
+
+        // 1. Get passed form IDs from active badges database table
+        $user_badges = $this->db->get_badges_by_user( $user_id );
+        if ( ! empty( $user_badges ) ) {
+            foreach ( $user_badges as $badge ) {
+                if ( $badge->status === 'active' ) {
+                    $passed_form_ids[] = intval( $badge->form_id );
+                }
+            }
+        }
+
+        // 2. Get attempted and passed form IDs from attempt history as fallback
+        if ( ! empty( $user_attempts ) ) {
+            foreach ( $user_attempts as $att ) {
+                $f_id = isset( $att['form_id'] ) ? intval( $att['form_id'] ) : 0;
+                if ( $f_id ) {
+                    $attempted_form_ids[] = $f_id;
+                    if ( $att['pass'] ) {
+                        $passed_form_ids[] = $f_id;
+                    }
+                }
+            }
+        }
+        $passed_form_ids = array_unique( $passed_form_ids );
+        $attempted_form_ids = array_unique( $attempted_form_ids );
         ?>
         <!DOCTYPE html>
         <html <?php language_attributes(); ?>>
@@ -1228,7 +1258,7 @@ class SBM_Gravity_Forms {
                 <header class="sbm-portal-header">
                     <div class="brand">
                         <?php if ( ! empty( $logo_img_src ) ) : ?>
-                            <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="filter: brightness(0) invert(1);" />
+                            <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="filter: none !important;" />
                         <?php else : ?>
                             <span class="brand-text">S-CHEM</span>
                         <?php endif; ?>
@@ -1279,13 +1309,28 @@ class SBM_Gravity_Forms {
                                 <h3><?php esc_html_e( 'Available Safety Quizzes', 'safety-badges-manager' ); ?></h3>
                                 <?php if ( ! empty( $active_quizzes ) ) : ?>
                                     <div class="sbm-quizzes-grid">
-                                        <?php foreach ( $active_quizzes as $quiz ) : ?>
+                                        <?php foreach ( $active_quizzes as $quiz ) : 
+                                            $quiz_id = intval( $quiz['id'] );
+                                            $has_passed = in_array( $quiz_id, $passed_form_ids );
+                                            $has_attempted = in_array( $quiz_id, $attempted_form_ids );
+                                            ?>
                                             <div class="sbm-quiz-item-card">
                                                 <div>
-                                                    <h4><?php echo esc_html( $quiz['title'] ); ?></h4>
+                                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
+                                                        <h4 style="margin: 0;"><?php echo esc_html( $quiz['title'] ); ?></h4>
+                                                        <?php if ( $has_passed ) : ?>
+                                                            <span class="sbm-status-tag pass" style="flex-shrink: 0; margin-top: -2px;">Passed</span>
+                                                        <?php elseif ( $has_attempted ) : ?>
+                                                            <span class="sbm-status-tag fail" style="flex-shrink: 0; margin-top: -2px;">Failed</span>
+                                                        <?php endif; ?>
+                                                    </div>
                                                     <p class="meta">Passing Score: <?php echo esc_html( rgar( $quiz, 'sbm_pass_percent', 80 ) ); ?>%</p>
                                                 </div>
-                                                <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start">Start Exam</a>
+                                                <?php if ( $has_passed || $has_attempted ) : ?>
+                                                    <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start btn-retake">Retake Exam</a>
+                                                <?php else : ?>
+                                                    <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start">Start Exam</a>
+                                                <?php endif; ?>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
@@ -1387,7 +1432,7 @@ class SBM_Gravity_Forms {
                 <div class="sbm-landing-banner">
                     <div style="margin-bottom: 40px;">
                         <?php if ( ! empty( $logo_img_src ) ) : ?>
-                            <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="height: 50px; filter: brightness(0) invert(1);" />
+                            <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="filter: none !important;" />
                         <?php else : ?>
                             <span style="font-size: 24px; font-weight: 800; letter-spacing: 1.5px; color: #ffffff;">S-CHEM</span>
                         <?php endif; ?>
@@ -1402,7 +1447,7 @@ class SBM_Gravity_Forms {
                     <div class="sbm-login-card" style="max-width: 500px;">
                         <div class="sbm-login-logo">
                             <?php if ( ! empty( $logo_img_src ) ) : ?>
-                                <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" />
+                                <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="S-Chem Logo" style="filter: none !important;" />
                             <?php else : ?>
                                 <span>S-CHEM</span>
                             <?php endif; ?>
@@ -1419,9 +1464,9 @@ class SBM_Gravity_Forms {
                             <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background-color: #ffffff; padding: 0 10px; font-size: 12px; color: #94a3b8; text-transform: uppercase;"><?php esc_html_e( 'or', 'safety-badges-manager' ); ?></span>
                         </div>
 
-                        <p style="font-size: 14px; color: #64748b; margin: 0;">
+                        <p style="font-size: 18px !important; color: #64748b; margin: 0; font-weight: 600;">
                             <?php esc_html_e( 'Already registered?', 'safety-badges-manager' ); ?>
-                            <a href="<?php echo esc_url( home_url( '/' ) ); ?>" style="color: #dc2626; font-weight: 600; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#b91c1c';" onmouseout="this.style.color='#dc2626';"><?php esc_html_e( 'Login Here', 'safety-badges-manager' ); ?></a>
+                            <a href="<?php echo esc_url( home_url( '/' ) ); ?>" style="color: #dc2626; font-weight: 700; text-decoration: none; transition: color 0.2s; font-size: 18px !important;" onmouseover="this.style.color='#b91c1c';" onmouseout="this.style.color='#dc2626';"><?php esc_html_e( 'Login Here', 'safety-badges-manager' ); ?></a>
                         </p>
                     </div>
                 </div>
@@ -1467,6 +1512,15 @@ class SBM_Gravity_Forms {
                 position: relative;
                 background-image: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
             }
+            .sbm-landing-banner img {
+                height: 50px !important;
+                background-color: #ffffff !important;
+                padding: 5px 12px !important;
+                border-radius: 6px !important;
+                object-fit: contain !important;
+                display: inline-block !important;
+                filter: none !important;
+            }
             .sbm-landing-banner h1 {
                 font-size: 38px;
                 font-weight: 800;
@@ -1497,9 +1551,10 @@ class SBM_Gravity_Forms {
                 margin-bottom: 30px;
             }
             .sbm-login-logo img {
-                height: 45px;
-                max-width: 100%;
-                object-fit: contain;
+                height: 45px !important;
+                max-width: 100% !important;
+                object-fit: contain !important;
+                filter: none !important;
             }
             .sbm-login-logo span {
                 font-size: 26px;
@@ -1529,9 +1584,13 @@ class SBM_Gravity_Forms {
                 gap: 12px;
             }
             .sbm-portal-header .brand img {
-                height: 35px;
-                max-width: 100%;
-                object-fit: contain;
+                height: 35px !important;
+                background-color: #ffffff !important;
+                padding: 4px 10px !important;
+                border-radius: 6px !important;
+                max-width: 100% !important;
+                object-fit: contain !important;
+                filter: none !important;
             }
             .sbm-portal-header .brand-text {
                 font-size: 18px;
@@ -1726,6 +1785,15 @@ class SBM_Gravity_Forms {
             }
             .sbm-quiz-item-card .btn-start:hover {
                 background-color: #1e293b;
+            }
+            .sbm-quiz-item-card .btn-start.btn-retake {
+                background-color: #f1f5f9;
+                color: #0f172a;
+                border: 1.5px solid #cbd5e1;
+            }
+            .sbm-quiz-item-card .btn-start.btn-retake:hover {
+                background-color: #e2e8f0;
+                border-color: #0f172a;
             }
 
             /* Attempt History */
