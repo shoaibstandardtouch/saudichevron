@@ -895,6 +895,10 @@ class SBM_Admin {
 
         // Check if user is logged in and is not an administrator
         if ( is_user_logged_in() && ! current_user_can( 'manage_options' ) ) {
+            // Bypass redirect if this is the print badges request on admin-post.php
+            if ( isset( $_GET['action'] ) && 'sbm_print_badges' === $_GET['action'] && strpos( $_SERVER['SCRIPT_NAME'], 'admin-post.php' ) !== false ) {
+                return;
+            }
             wp_safe_redirect( home_url() );
             exit;
         }
