@@ -1062,11 +1062,12 @@ class SBM_Gravity_Forms {
         return $value;
     }
 
-    /**
-     * Intercept front page requests to show employee portal or login screen.
-     */
     public function intercept_homepage() {
         if ( is_front_page() ) {
+            if ( current_user_can( 'manage_safety_training' ) ) {
+                wp_safe_redirect( admin_url( 'admin.php?page=safety-training' ) );
+                exit;
+            }
             $this->render_portal_page();
             exit;
         }
