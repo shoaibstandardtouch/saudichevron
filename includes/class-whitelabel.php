@@ -68,7 +68,10 @@ class SBM_Whitelabel {
                     'gravityforms_export_entries'    => true,
                     'gravityforms_view_settings'     => true,
                     'gravityforms_edit_settings'     => true,
-                    'gravityforms_user_registration' => true,
+                    // Quiz Add-On capabilities
+                    'gravityforms_quiz_settings'      => true,
+                    'gravityforms_quiz_form_settings' => true,
+                    'gravityforms_quiz_results'       => true,
                 )
             );
         } else {
@@ -88,7 +91,10 @@ class SBM_Whitelabel {
                 $manager_role->add_cap( 'gravityforms_export_entries' );
                 $manager_role->add_cap( 'gravityforms_view_settings' );
                 $manager_role->add_cap( 'gravityforms_edit_settings' );
-                $manager_role->add_cap( 'gravityforms_user_registration' );
+                $manager_role->remove_cap( 'gravityforms_user_registration' );
+                $manager_role->add_cap( 'gravityforms_quiz_settings' );
+                $manager_role->add_cap( 'gravityforms_quiz_form_settings' );
+                $manager_role->add_cap( 'gravityforms_quiz_results' );
             }
         }
     }
