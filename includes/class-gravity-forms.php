@@ -1414,30 +1414,6 @@ class SBM_Gravity_Forms {
                                             $quiz_id = intval( $quiz['id'] );
                                             $has_passed = in_array( $quiz_id, $passed_form_ids );
                                             $has_attempted = in_array( $quiz_id, $attempted_form_ids );
-
-                                            // Determine if retake button should show for passed quizzes
-                                            $show_retake = true;
-                                            if ( $has_passed ) {
-                                                $show_retake = false; // default to false if passed
-                                                $found_active_badge = false;
-                                                if ( ! empty( $user_badges ) ) {
-                                                    foreach ( $user_badges as $badge ) {
-                                                        if ( intval( $badge->form_id ) === $quiz_id && $badge->status === 'active' ) {
-                                                            $found_active_badge = true;
-                                                            $expiry_time = strtotime( $badge->expiry_date );
-                                                            $notification_days = intval( rgar( $quiz, 'sbm_notification_days', 30 ) );
-                                                            if ( ( time() + ( $notification_days * DAY_IN_SECONDS ) ) >= $expiry_time ) {
-                                                                $show_retake = true;
-                                                            }
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                                // If they passed but have no active badge (e.g. expired or deleted), let them retake
-                                                if ( ! $found_active_badge ) {
-                                                    $show_retake = true;
-                                                }
-                                            }
                                             ?>
                                             <div class="sbm-quiz-item-card">
                                                 <div>
@@ -1452,9 +1428,7 @@ class SBM_Gravity_Forms {
                                                     <p class="meta">Passing Score: <?php echo esc_html( rgar( $quiz, 'sbm_pass_percent', 80 ) ); ?>%</p>
                                                 </div>
                                                 <?php if ( $has_passed || $has_attempted ) : ?>
-                                                    <?php if ( $show_retake ) : ?>
-                                                        <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start btn-retake">Retake Exam</a>
-                                                    <?php endif; ?>
+                                                    <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start btn-retake">Retake Exam</a>
                                                 <?php else : ?>
                                                     <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start">Start Exam</a>
                                                 <?php endif; ?>
