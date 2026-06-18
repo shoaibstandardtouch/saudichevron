@@ -962,7 +962,6 @@ class SBM_Admin {
                 
                 fputcsv($output, array(
                     'Employee Name',
-                    'Email Address',
                     'Iqaama No.',
                     'Company',
                     'Compliance Status',
@@ -994,7 +993,6 @@ class SBM_Admin {
 
                     fputcsv($output, array(
                         $item->display_name,
-                        $item->user_email,
                         $iqama,
                         $company,
                         $status_label,
@@ -1123,7 +1121,6 @@ class SBM_Employee_List_Table extends WP_List_Table {
         return array(
             'cb'           => '<input type="checkbox" />',
             'display_name' => esc_html__( 'Employee Name', 'safety-badges-manager' ),
-            'user_email'   => esc_html__( 'Email Address', 'safety-badges-manager' ),
             'badge_status' => esc_html__( 'Compliance Status', 'safety-badges-manager' ),
             'badge_number' => esc_html__( 'Active Badge #', 'safety-badges-manager' ),
             'pass_date'    => esc_html__( 'Certified On', 'safety-badges-manager' ),
@@ -1134,7 +1131,6 @@ class SBM_Employee_List_Table extends WP_List_Table {
     public function get_sortable_columns() {
         return array(
             'display_name' => array( 'display_name', true ),
-            'user_email'   => array( 'user_email', false ),
             'badge_status' => array( 'badge_status', false ),
             'pass_date'    => array( 'pass_date', false ),
             'expiry_date'  => array( 'expiry_date', false ),
