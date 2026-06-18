@@ -428,7 +428,6 @@ class SBM_PDF_Generator {
                                                     </div>
                                                     <div class="employee-info">
                                                         <div class="employee-name"><?php echo esc_html( $emp['user_display_name'] ); ?></div>
-                                                        <div><span style="font-weight: bold; color: #64748b;">ID:</span> <?php echo esc_html( $emp['user_login'] ); ?></div>
                                                         <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span style="font-weight: bold; color: #64748b;">Company:</span> <?php echo esc_html( $emp['company'] ); ?></div>
                                                         <?php if ( ! empty( $emp['iqama'] ) ) : ?>
                                                             <div><span style="font-weight: bold; color: #64748b;">Iqama:</span> <?php echo esc_html( $emp['iqama'] ); ?></div>
