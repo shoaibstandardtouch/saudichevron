@@ -3,7 +3,7 @@
  * Plugin Name: Safety Badges Manager
  * Plugin URI:  https://standardtouch.com
  * Description: Safety training compliance system. Extends Gravity Forms Quiz to manage employee certificates, automate badge expiry, randomize test questions, and print bulk PDFs.
- * Version:     1.4.6
+ * Version:     1.4.7
  * Author:      StandardTouch
  * Author URI:  https://standardtouch.com
  * License:     GPL2
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define Constants
-define( 'SBM_VERSION', '1.4.6' );
+define( 'SBM_VERSION', '1.4.7' );
 define( 'SBM_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SBM_URL', plugin_dir_url( __FILE__ ) );
 define( 'SBM_BASENAME', plugin_basename( __FILE__ ) );

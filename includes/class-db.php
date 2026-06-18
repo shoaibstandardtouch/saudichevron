@@ -149,6 +149,7 @@ class SBM_DB {
             'quiz_filter'    => 0,
             'start_date'     => '',
             'end_date'       => '',
+            'iqama_filter'   => '',
             'orderby'        => 'display_name',
             'order'          => 'ASC',
             'number'         => 20,
@@ -169,7 +170,8 @@ class SBM_DB {
                 b.pass_date,
                 b.expiry_date,
                 COALESCE(b.status, 'none') as badge_status,
-                COALESCE(um_comp.meta_value, 'S-Chem') as company
+                COALESCE(um_comp.meta_value, 'S-Chem') as company,
+                COALESCE(um_iqama.meta_value, u.user_login) as iqama
             FROM {$wpdb->users} u
             LEFT JOIN (
                 SELECT b1.*
@@ -181,6 +183,7 @@ class SBM_DB {
                 ) b2 ON b1.user_id = b2.user_id AND b1.pass_date = b2.max_date
             ) b ON u.ID = b.user_id
             LEFT JOIN {$wpdb->usermeta} um_comp ON u.ID = um_comp.user_id AND um_comp.meta_key = 'sbm_company'
+            LEFT JOIN {$wpdb->usermeta} um_iqama ON u.ID = um_iqama.user_id AND um_iqama.meta_key = 'sbm_iqama'
         ";
 
         $where = array();
@@ -191,7 +194,12 @@ class SBM_DB {
 
         if ( ! empty( $args['search'] ) ) {
             $search_like = '%' . $wpdb->esc_like( $args['search'] ) . '%';
-            $where[] = $wpdb->prepare( "(u.display_name LIKE %s OR u.user_email LIKE %s OR b.badge_number LIKE %s)", $search_like, $search_like, $search_like );
+            $where[] = $wpdb->prepare( "(u.display_name LIKE %s OR u.user_email LIKE %s OR b.badge_number LIKE %s OR um_iqama.meta_value LIKE %s OR u.user_login LIKE %s)", $search_like, $search_like, $search_like, $search_like, $search_like );
+        }
+
+        if ( ! empty( $args['iqama_filter'] ) ) {
+            $iqama_like = '%' . $wpdb->esc_like( $args['iqama_filter'] ) . '%';
+            $where[] = $wpdb->prepare( "(um_iqama.meta_value LIKE %s OR u.user_login LIKE %s)", $iqama_like, $iqama_like );
         }
 
         if ( ! empty( $args['status_filter'] ) ) {
@@ -227,7 +235,7 @@ class SBM_DB {
         }
 
         // Ordering
-        $allowed_orderby = array( 'display_name', 'user_email', 'pass_date', 'expiry_date', 'badge_status' );
+        $allowed_orderby = array( 'display_name', 'user_email', 'iqama', 'pass_date', 'expiry_date', 'badge_status' );
         $orderby = in_array( $args['orderby'], $allowed_orderby ) ? $args['orderby'] : 'display_name';
         $order = strtoupper( $args['order'] ) === 'DESC' ? 'DESC' : 'ASC';
 
@@ -267,11 +275,17 @@ class SBM_DB {
         
         $query .= " LEFT JOIN {$wpdb->usermeta} um ON u.ID = um.user_id AND um.meta_key = '{$wpdb->prefix}capabilities' ";
         $query .= " LEFT JOIN {$wpdb->usermeta} um_comp ON u.ID = um_comp.user_id AND um_comp.meta_key = 'sbm_company' ";
+        $query .= " LEFT JOIN {$wpdb->usermeta} um_iqama ON u.ID = um_iqama.user_id AND um_iqama.meta_key = 'sbm_iqama' ";
         $where[] = "(um.meta_value IS NULL OR um.meta_value NOT LIKE '%administrator%')";
 
         if ( ! empty( $args['search'] ) ) {
             $search_like = '%' . $wpdb->esc_like( $args['search'] ) . '%';
-            $where[] = $wpdb->prepare( "(u.display_name LIKE %s OR u.user_email LIKE %s OR b.badge_number LIKE %s)", $search_like, $search_like, $search_like );
+            $where[] = $wpdb->prepare( "(u.display_name LIKE %s OR u.user_email LIKE %s OR b.badge_number LIKE %s OR um_iqama.meta_value LIKE %s OR u.user_login LIKE %s)", $search_like, $search_like, $search_like, $search_like, $search_like );
+        }
+
+        if ( ! empty( $args['iqama_filter'] ) ) {
+            $iqama_like = '%' . $wpdb->esc_like( $args['iqama_filter'] ) . '%';
+            $where[] = $wpdb->prepare( "(um_iqama.meta_value LIKE %s OR u.user_login LIKE %s)", $iqama_like, $iqama_like );
         }
 
         if ( ! empty( $args['status_filter'] ) ) {
@@ -490,6 +504,12 @@ class SBM_DB {
             $where[] = $wpdb->prepare( "e.date_created <= %s", $args['end_date'] . ' 23:59:59' );
         }
 
+        // Filter by Iqaama number
+        if ( ! empty( $args['iqama_filter'] ) ) {
+            $iqama_like = '%' . $wpdb->esc_like( $args['iqama_filter'] ) . '%';
+            $where[] = $wpdb->prepare( "(um_iqama.meta_value LIKE %s OR u.user_login LIKE %s)", $iqama_like, $iqama_like );
+        }
+
         $where_clause = implode( " AND ", $where );
 
         $query = "
@@ -502,7 +522,9 @@ class SBM_DB {
                 MAX(CASE WHEN em.meta_key = 'gquiz_percent' THEN em.meta_value END) as score_percent,
                 MAX(CASE WHEN em.meta_key = 'gquiz_is_pass' THEN em.meta_value END) as is_pass
             FROM $gf_entry_table e
+            LEFT JOIN {$wpdb->users} u ON e.created_by = u.ID
             LEFT JOIN {$wpdb->usermeta} um_comp ON e.created_by = um_comp.user_id AND um_comp.meta_key = 'sbm_company'
+            LEFT JOIN {$wpdb->usermeta} um_iqama ON e.created_by = um_iqama.user_id AND um_iqama.meta_key = 'sbm_iqama'
             LEFT JOIN $gf_entry_meta_table em ON e.id = em.entry_id AND em.meta_key IN ('gquiz_percent', 'gquiz_is_pass')
             WHERE $where_clause
             GROUP BY e.id, e.created_by, e.form_id, e.date_created, um_comp.meta_value

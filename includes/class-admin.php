@@ -199,6 +199,7 @@ class SBM_Admin {
         $start_date     = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
         $end_date       = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
         $status_filter  = isset( $_GET['status_filter'] ) ? sanitize_text_field( $_GET['status_filter'] ) : '';
+        $iqama_filter   = isset( $_GET['iqama_filter'] ) ? sanitize_text_field( $_GET['iqama_filter'] ) : '';
 
         // Fetch unique companies for dropdown list
         global $wpdb;
@@ -269,6 +270,10 @@ class SBM_Admin {
                             <label for="end_date"><span class="dashicons dashicons-calendar-alt"></span> <?php esc_html_e( 'Certified End Date', 'safety-badges-manager' ); ?></label>
                             <input type="date" name="end_date" id="end_date" value="<?php echo esc_attr( $end_date ); ?>" />
                         </div>
+                        <div class="filter-col">
+                            <label for="iqama_filter"><span class="dashicons dashicons-id"></span> <?php esc_html_e( 'Iqaama Number', 'safety-badges-manager' ); ?></label>
+                            <input type="text" name="iqama_filter" id="iqama_filter" value="<?php echo esc_attr( $iqama_filter ); ?>" placeholder="<?php esc_attr_e( 'Search by Iqaama...', 'safety-badges-manager' ); ?>" />
+                        </div>
                     </div>
                     <div class="sbm-filter-actions">
                         <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filters', 'safety-badges-manager' ); ?></button>
@@ -282,6 +287,7 @@ class SBM_Admin {
                             'quiz_filter'    => $quiz_filter,
                             'start_date'     => $start_date,
                             'end_date'       => $end_date,
+                            'iqama_filter'   => $iqama_filter,
                         ), admin_url( 'admin.php' ) );
                         ?>
                         <a href="<?php echo esc_url( $export_url ); ?>" class="button button-secondary"><span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export CSV', 'safety-badges-manager' ); ?></a>
@@ -296,6 +302,7 @@ class SBM_Admin {
                 <input type="hidden" name="start_date" value="<?php echo esc_attr( $start_date ); ?>" />
                 <input type="hidden" name="end_date" value="<?php echo esc_attr( $end_date ); ?>" />
                 <input type="hidden" name="status_filter" value="<?php echo esc_attr( $status_filter ); ?>" />
+                <input type="hidden" name="iqama_filter" value="<?php echo esc_attr( $iqama_filter ); ?>" />
                 <?php
                 // Display search box and filters
                 $list_table->search_box( esc_html__( 'Search Employees', 'safety-badges-manager' ), 'sbm-search' );
@@ -318,17 +325,19 @@ class SBM_Admin {
         }
 
         // Get filter inputs
-        $company    = isset( $_GET['company'] ) ? sanitize_text_field( $_GET['company'] ) : '';
-        $form_id    = isset( $_GET['form_id'] ) ? intval( $_GET['form_id'] ) : 0;
-        $start_date = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
-        $end_date   = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+        $company      = isset( $_GET['company'] ) ? sanitize_text_field( $_GET['company'] ) : '';
+        $form_id      = isset( $_GET['form_id'] ) ? intval( $_GET['form_id'] ) : 0;
+        $start_date   = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
+        $end_date     = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+        $iqama_filter = isset( $_GET['iqama_filter'] ) ? sanitize_text_field( $_GET['iqama_filter'] ) : '';
 
         // Fetch reports data
         $entries = $this->db->get_reports_data( array(
-            'company'    => $company,
-            'form_id'    => $form_id,
-            'start_date' => $start_date,
-            'end_date'   => $end_date
+            'company'      => $company,
+            'form_id'      => $form_id,
+            'start_date'   => $start_date,
+            'end_date'     => $end_date,
+            'iqama_filter' => $iqama_filter,
         ) );
 
         // Fetch unique companies for dropdown list
@@ -484,17 +493,22 @@ class SBM_Admin {
                             <label for="end_date"><span class="dashicons dashicons-calendar-alt"></span> <?php esc_html_e( 'End Date', 'safety-badges-manager' ); ?></label>
                             <input type="date" name="end_date" id="end_date" value="<?php echo esc_attr( $end_date ); ?>" />
                         </div>
+                        <div class="filter-col">
+                            <label for="iqama_filter"><span class="dashicons dashicons-id"></span> <?php esc_html_e( 'Iqaama Number', 'safety-badges-manager' ); ?></label>
+                            <input type="text" name="iqama_filter" id="iqama_filter" value="<?php echo esc_attr( $iqama_filter ); ?>" placeholder="<?php esc_attr_e( 'Search by Iqaama...', 'safety-badges-manager' ); ?>" />
+                        </div>
                     </div>
                     <div class="sbm-filter-actions">
                         <button type="submit" class="button button-primary"><?php esc_html_e( 'Apply Filters', 'safety-badges-manager' ); ?></button>
                         <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-reports' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Reset Filters', 'safety-badges-manager' ); ?></a>
                         <?php
                         $export_reports_url = add_query_arg( array(
-                            'action'     => 'sbm_export_reports',
-                            'company'    => $company,
-                            'form_id'    => $form_id,
-                            'start_date' => $start_date,
-                            'end_date'   => $end_date,
+                            'action'       => 'sbm_export_reports',
+                            'company'      => $company,
+                            'form_id'      => $form_id,
+                            'start_date'   => $start_date,
+                            'end_date'     => $end_date,
+                            'iqama_filter' => $iqama_filter,
                         ), admin_url( 'admin.php' ) );
                         ?>
                         <a href="<?php echo esc_url( $export_reports_url ); ?>" class="button button-secondary"><span class="dashicons dashicons-download"></span> <?php esc_html_e( 'Export CSV', 'safety-badges-manager' ); ?></a>
@@ -940,6 +954,7 @@ class SBM_Admin {
                 $quiz_filter    = isset( $_GET['quiz_filter'] ) ? intval( $_GET['quiz_filter'] ) : 0;
                 $start_date     = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
                 $end_date       = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+                $iqama_filter   = isset( $_GET['iqama_filter'] ) ? sanitize_text_field( $_GET['iqama_filter'] ) : '';
 
                 // Query all matching employees (offset 0, high limit)
                 $items = $this->db->get_employee_records( array(
@@ -949,6 +964,7 @@ class SBM_Admin {
                     'quiz_filter'    => $quiz_filter,
                     'start_date'     => $start_date,
                     'end_date'       => $end_date,
+                    'iqama_filter'   => $iqama_filter,
                     'number'         => 10000,
                     'offset'         => 0
                 ) );
@@ -1005,16 +1021,18 @@ class SBM_Admin {
                 fclose($output);
                 exit;
             } elseif ( 'sbm_export_reports' === $_GET['action'] ) {
-                $company    = isset( $_GET['company'] ) ? sanitize_text_field( $_GET['company'] ) : '';
-                $form_id    = isset( $_GET['form_id'] ) ? intval( $_GET['form_id'] ) : 0;
-                $start_date = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
-                $end_date   = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+                $company      = isset( $_GET['company'] ) ? sanitize_text_field( $_GET['company'] ) : '';
+                $form_id      = isset( $_GET['form_id'] ) ? intval( $_GET['form_id'] ) : 0;
+                $start_date   = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
+                $end_date     = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+                $iqama_filter = isset( $_GET['iqama_filter'] ) ? sanitize_text_field( $_GET['iqama_filter'] ) : '';
 
                 $entries = $this->db->get_reports_data( array(
-                    'company'    => $company,
-                    'form_id'    => $form_id,
-                    'start_date' => $start_date,
-                    'end_date'   => $end_date
+                    'company'      => $company,
+                    'form_id'      => $form_id,
+                    'start_date'   => $start_date,
+                    'end_date'     => $end_date,
+                    'iqama_filter' => $iqama_filter,
                 ) );
 
                 $filename = 'safety_reports_export_' . date('Y-m-d') . '.csv';
@@ -1121,6 +1139,7 @@ class SBM_Employee_List_Table extends WP_List_Table {
         return array(
             'cb'           => '<input type="checkbox" />',
             'display_name' => esc_html__( 'Employee Name', 'safety-badges-manager' ),
+            'iqama'        => esc_html__( 'Iqaama No.', 'safety-badges-manager' ),
             'badge_status' => esc_html__( 'Compliance Status', 'safety-badges-manager' ),
             'badge_number' => esc_html__( 'Active Badge #', 'safety-badges-manager' ),
             'pass_date'    => esc_html__( 'Certified On', 'safety-badges-manager' ),
@@ -1131,6 +1150,7 @@ class SBM_Employee_List_Table extends WP_List_Table {
     public function get_sortable_columns() {
         return array(
             'display_name' => array( 'display_name', true ),
+            'iqama'        => array( 'iqama', false ),
             'badge_status' => array( 'badge_status', false ),
             'pass_date'    => array( 'pass_date', false ),
             'expiry_date'  => array( 'expiry_date', false ),
@@ -1199,6 +1219,8 @@ class SBM_Employee_List_Table extends WP_List_Table {
         switch ( $column_name ) {
             case 'user_email':
                 return esc_html( $item->user_email );
+            case 'iqama':
+                return ! empty( $item->iqama ) ? esc_html( $item->iqama ) : '-';
             case 'badge_number':
                 return ! empty( $item->badge_number ) ? esc_html( $item->badge_number ) : '-';
             case 'pass_date':
@@ -1255,6 +1277,7 @@ class SBM_Employee_List_Table extends WP_List_Table {
         $quiz_filter    = isset( $_GET['quiz_filter'] ) ? intval( $_GET['quiz_filter'] ) : 0;
         $start_date     = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
         $end_date       = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+        $iqama_filter   = isset( $_GET['iqama_filter'] ) ? sanitize_text_field( $_GET['iqama_filter'] ) : '';
         
         $filter_args = array();
         if ( ! empty( $company_filter ) ) {
@@ -1269,6 +1292,9 @@ class SBM_Employee_List_Table extends WP_List_Table {
         if ( ! empty( $end_date ) ) {
             $filter_args['end_date'] = $end_date;
         }
+        if ( ! empty( $iqama_filter ) ) {
+            $filter_args['iqama_filter'] = $iqama_filter;
+        }
 
         // Count totals for badges
         $count_args = array(
@@ -1276,6 +1302,7 @@ class SBM_Employee_List_Table extends WP_List_Table {
             'quiz_filter'    => $quiz_filter,
             'start_date'     => $start_date,
             'end_date'       => $end_date,
+            'iqama_filter'   => $iqama_filter,
         );
 
         $active_count  = $this->db->get_employee_records_count( array_merge( $count_args, array( 'status_filter' => 'active' ) ) );
@@ -1343,6 +1370,7 @@ class SBM_Employee_List_Table extends WP_List_Table {
         $quiz_filter    = isset( $_GET['quiz_filter'] ) ? intval( $_GET['quiz_filter'] ) : 0;
         $start_date     = isset( $_GET['start_date'] ) ? sanitize_text_field( $_GET['start_date'] ) : '';
         $end_date       = isset( $_GET['end_date'] ) ? sanitize_text_field( $_GET['end_date'] ) : '';
+        $iqama_filter   = isset( $_GET['iqama_filter'] ) ? sanitize_text_field( $_GET['iqama_filter'] ) : '';
         $orderby        = isset( $_GET['orderby'] ) ? sanitize_text_field( $_GET['orderby'] ) : 'display_name';
         $order          = isset( $_GET['order'] ) ? sanitize_text_field( $_GET['order'] ) : 'ASC';
 
@@ -1352,7 +1380,8 @@ class SBM_Employee_List_Table extends WP_List_Table {
             'company_filter' => $company_filter,
             'quiz_filter'    => $quiz_filter,
             'start_date'     => $start_date,
-            'end_date'       => $end_date
+            'end_date'       => $end_date,
+            'iqama_filter'   => $iqama_filter,
         ) );
 
         $items = $this->db->get_employee_records( array(
@@ -1362,6 +1391,7 @@ class SBM_Employee_List_Table extends WP_List_Table {
             'quiz_filter'    => $quiz_filter,
             'start_date'     => $start_date,
             'end_date'       => $end_date,
+            'iqama_filter'   => $iqama_filter,
             'orderby'        => $orderby,
             'order'          => $order,
             'number'         => $per_page,
