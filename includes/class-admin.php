@@ -650,10 +650,7 @@ class SBM_Admin {
                 </div>
                 <div class="profile-details">
                     <?php
-                    $display_name = $user->display_name;
-                    if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
-                        $display_name = ! empty( $iqama ) ? $iqama : $user->user_login;
-                    }
+                    $display_name = SBM()->gravity_forms->heal_user_display_name( $user_id );
                     ?>
                     <h2><?php echo esc_html( $display_name ); ?></h2>
                     <p class="profile-email"><strong><?php esc_html_e( 'Email:', 'safety-badges-manager' ); ?></strong> <a href="mailto:<?php echo esc_attr( $user->user_email ); ?>"><?php echo esc_html( $user->user_email ); ?></a></p>
@@ -1013,10 +1010,7 @@ class SBM_Admin {
                         $company = 'S-Chem';
                     }
 
-                    $display_name = $item->display_name;
-                    if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
-                        $display_name = ! empty( $iqama ) ? $iqama : 'User #' . $item->user_id;
-                    }
+                    $display_name = SBM()->gravity_forms->heal_user_display_name( $item->user_id );
 
                     fputcsv($output, array(
                         $display_name,
@@ -1072,9 +1066,7 @@ class SBM_Admin {
                     if ( empty( $iqama ) ) {
                         $iqama = $user ? $user->user_login : '';
                     }
-                    if ( empty( $user_name ) || in_array( strtolower( trim( $user_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
-                        $user_name = ! empty( $iqama ) ? $iqama : ( $user ? $user->user_login : 'User #' . $entry->user_id );
-                    }
+                    $user_name = SBM()->gravity_forms->heal_user_display_name( $entry->user_id );
                     
                     $form_title = 'Form #' . $entry->form_id;
                     if ( class_exists( 'GFAPI' ) ) {
@@ -1196,10 +1188,7 @@ class SBM_Employee_List_Table extends WP_List_Table {
             $actions['print'] = sprintf( '<a href="%s" target="_blank">%s</a>', esc_url( $print_url ), esc_html__( 'Print Badge PDF', 'safety-badges-manager' ) );
         }
 
-        $display_name = $item->display_name;
-        if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
-            $display_name = ! empty( $item->iqama ) ? $item->iqama : 'User #' . $item->user_id;
-        }
+        $display_name = SBM()->gravity_forms->heal_user_display_name( $item->user_id );
 
         return sprintf(
             '<strong><a class="row-title" href="%s">%s</a></strong> %s',

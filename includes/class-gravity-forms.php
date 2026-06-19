@@ -571,6 +571,77 @@ class SBM_Gravity_Forms {
     }
 
     /**
+     * Heal and recover a user's display name if it is corrupt.
+     */
+    public function heal_user_display_name( $user_id ) {
+        $user = get_userdata( $user_id );
+        if ( ! $user ) {
+            return '';
+        }
+
+        $display_name = $user->display_name;
+        if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+            $found_name = '';
+            if ( class_exists( 'GFAPI' ) ) {
+                $search_criteria = array(
+                    'status'        => 'active',
+                    'field_filters' => array(
+                        array(
+                            'key'   => 'created_by',
+                            'value' => $user_id,
+                        ),
+                    ),
+                );
+                $entries = GFAPI::get_entries( 0, $search_criteria );
+                if ( ! empty( $entries ) ) {
+                    foreach ( $entries as $ent ) {
+                        $f = GFAPI::get_form( $ent['form_id'] );
+                        if ( $f ) {
+                            // 1. Try search by sbm_name input parameter
+                            foreach ( $f['fields'] as $field ) {
+                                if ( rgar( $field, 'inputName' ) === 'sbm_name' ) {
+                                    $val = rgar( $ent, (string) $field->id );
+                                    if ( ! empty( $val ) && ! in_array( strtolower( trim( $val ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+                                        $found_name = $val;
+                                        break 2;
+                                    }
+                                }
+                            }
+                            // 2. Try search by label fallback
+                            foreach ( $f['fields'] as $field ) {
+                                if ( in_array( $field->type, array( 'checkbox', 'radio', 'select', 'multiselect', 'consent', 'quiz' ), true ) ) {
+                                    continue;
+                                }
+                                $lbl = strtolower( $field->label );
+                                if ( strpos( $lbl, 'name' ) !== false && strpos( $lbl, 'company' ) === false ) {
+                                    $val = rgar( $ent, (string) $field->id );
+                                    if ( ! empty( $val ) && ! in_array( strtolower( trim( $val ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+                                        $found_name = $val;
+                                        break 2;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if ( ! empty( $found_name ) ) {
+                $display_name = $found_name;
+                wp_update_user( array(
+                    'ID'           => $user_id,
+                    'display_name' => $display_name,
+                    'first_name'   => $display_name,
+                ) );
+            } else {
+                $iqama = get_user_meta( $user_id, 'sbm_iqama', true );
+                $display_name = ! empty( $iqama ) ? $iqama : $user->user_login;
+            }
+        }
+
+        return $display_name;
+    }
+
+    /**
      * Inject frontend script to automatically populate Email and Password in real-time as the user types their Iqaama number.
      */
     public function inject_dynamic_email_script( $form ) {
@@ -1225,65 +1296,8 @@ class SBM_Gravity_Forms {
         $company = get_user_meta( $user_id, 'sbm_company', true );
 
         // Self-healing display name if corrupt (e.g. TRUE, 1, false, etc.)
-        $display_name = $user->display_name;
-        if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
-            $found_name = '';
-            if ( class_exists( 'GFAPI' ) ) {
-                $search_criteria = array(
-                    'status'        => 'active',
-                    'field_filters' => array(
-                        array(
-                            'key'   => 'created_by',
-                            'value' => $user_id,
-                        ),
-                    ),
-                );
-                $entries = GFAPI::get_entries( 0, $search_criteria );
-                if ( ! empty( $entries ) ) {
-                    foreach ( $entries as $ent ) {
-                        $f = GFAPI::get_form( $ent['form_id'] );
-                        if ( $f ) {
-                            // 1. Try search by sbm_name input parameter
-                            foreach ( $f['fields'] as $field ) {
-                                if ( rgar( $field, 'inputName' ) === 'sbm_name' ) {
-                                    $val = rgar( $ent, (string) $field->id );
-                                    if ( ! empty( $val ) && ! in_array( strtolower( trim( $val ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
-                                        $found_name = $val;
-                                        break 2;
-                                    }
-                                }
-                            }
-                            // 2. Try search by label fallback
-                            foreach ( $f['fields'] as $field ) {
-                                if ( in_array( $field->type, array( 'checkbox', 'radio', 'select', 'multiselect', 'consent', 'quiz' ), true ) ) {
-                                    continue;
-                                }
-                                $lbl = strtolower( $field->label );
-                                if ( strpos( $lbl, 'name' ) !== false && strpos( $lbl, 'company' ) === false ) {
-                                    $val = rgar( $ent, (string) $field->id );
-                                    if ( ! empty( $val ) && ! in_array( strtolower( trim( $val ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
-                                        $found_name = $val;
-                                        break 2;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if ( ! empty( $found_name ) ) {
-                $display_name = $found_name;
-                wp_update_user( array(
-                    'ID'           => $user_id,
-                    'display_name' => $display_name,
-                    'first_name'   => $display_name,
-                ) );
-                $user = wp_get_current_user();
-            } else {
-                $display_name = ! empty( $iqama ) ? $iqama : $user->user_login;
-                $user->display_name = $display_name;
-            }
-        }
+        $display_name = $this->heal_user_display_name( $user_id );
+        $user->display_name = $display_name;
 
         // 2. QUIZ MODE: Render a selected active Gravity Forms quiz page template
         $quiz_id = isset( $_GET['quiz_id'] ) ? intval( $_GET['quiz_id'] ) : 0;
