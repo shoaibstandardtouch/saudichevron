@@ -157,7 +157,7 @@ class SBM_Admin {
 
                 <!-- Stacked Bar Chart for Pass/Fail Trends -->
                 <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Quiz Attempts Trend (6 Months)', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php esc_html_e( 'Exam Attempts Trend (6 Months)', 'safety-badges-manager' ); ?></h3>
                     <div class="chart-container">
                         <canvas id="sbmTrendsChart"></canvas>
                     </div>
@@ -254,9 +254,9 @@ class SBM_Admin {
                             </select>
                         </div>
                         <div class="filter-col">
-                            <label for="quiz_filter"><span class="dashicons dashicons-welcome-learn-more"></span> <?php esc_html_e( 'Safety Quiz', 'safety-badges-manager' ); ?></label>
+                            <label for="quiz_filter"><span class="dashicons dashicons-welcome-learn-more"></span> <?php esc_html_e( 'Safety Exam', 'safety-badges-manager' ); ?></label>
                             <select name="quiz_filter" id="quiz_filter">
-                                <option value=""><?php esc_html_e( 'All Quizzes', 'safety-badges-manager' ); ?></option>
+                                <option value=""><?php esc_html_e( 'All Exams', 'safety-badges-manager' ); ?></option>
                                 <?php foreach ( $safety_forms as $f ) : ?>
                                     <option value="<?php echo esc_attr( $f['id'] ); ?>" <?php selected( $quiz_filter, $f['id'] ); ?>><?php echo esc_html( $f['title'] ); ?></option>
                                 <?php endforeach; ?>
@@ -477,9 +477,9 @@ class SBM_Admin {
                             </select>
                         </div>
                         <div class="filter-col">
-                            <label for="form_id"><span class="dashicons dashicons-welcome-learn-more"></span> <?php esc_html_e( 'Safety Quiz', 'safety-badges-manager' ); ?></label>
+                            <label for="form_id"><span class="dashicons dashicons-welcome-learn-more"></span> <?php esc_html_e( 'Safety Exam', 'safety-badges-manager' ); ?></label>
                             <select name="form_id" id="form_id">
-                                <option value=""><?php esc_html_e( 'All Quizzes', 'safety-badges-manager' ); ?></option>
+                                <option value=""><?php esc_html_e( 'All Exams', 'safety-badges-manager' ); ?></option>
                                 <?php foreach ( $safety_forms as $f ) : ?>
                                     <option value="<?php echo esc_attr( $f['id'] ); ?>" <?php selected( $form_id, $f['id'] ); ?>><?php echo esc_html( $f['title'] ); ?></option>
                                 <?php endforeach; ?>
@@ -521,7 +521,7 @@ class SBM_Admin {
                 <div class="sbm-card card-active">
                     <h3><?php esc_html_e( 'Exams Taken', 'safety-badges-manager' ); ?></h3>
                     <p class="stat-number"><?php echo esc_html( $total_attempts ); ?></p>
-                    <span class="kpi-subtext"><?php esc_html_e( 'Total quiz attempts', 'safety-badges-manager' ); ?></span>
+                    <span class="kpi-subtext"><?php esc_html_e( 'Total exam attempts', 'safety-badges-manager' ); ?></span>
                 </div>
                 <div class="sbm-card card-pending" style="border-left-color: #2563eb;">
                     <h3><?php esc_html_e( 'Students Appeared', 'safety-badges-manager' ); ?></h3>
@@ -548,7 +548,7 @@ class SBM_Admin {
             <!-- Charts Container -->
             <div class="sbm-grid sbm-charts-grid" style="margin-top: 25px;">
                 <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Quiz Attempts Pass/Fail Ratio', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php esc_html_e( 'Exam Attempts Pass/Fail Ratio', 'safety-badges-manager' ); ?></h3>
                     <div class="chart-container">
                         <canvas id="sbmReportsDoughnutChart"></canvas>
                     </div>
@@ -563,7 +563,7 @@ class SBM_Admin {
 
             <div class="sbm-grid sbm-charts-grid">
                 <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Average Score by Quiz', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php esc_html_e( 'Average Score by Exam', 'safety-badges-manager' ); ?></h3>
                     <div class="chart-container">
                         <canvas id="sbmReportsScoresChart"></canvas>
                     </div>
@@ -649,7 +649,13 @@ class SBM_Admin {
                     <?php echo get_avatar( $user_id, 96 ); ?>
                 </div>
                 <div class="profile-details">
-                    <h2><?php echo esc_html( $user->display_name ); ?></h2>
+                    <?php
+                    $display_name = $user->display_name;
+                    if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+                        $display_name = ! empty( $iqama ) ? $iqama : $user->user_login;
+                    }
+                    ?>
+                    <h2><?php echo esc_html( $display_name ); ?></h2>
                     <p class="profile-email"><strong><?php esc_html_e( 'Email:', 'safety-badges-manager' ); ?></strong> <a href="mailto:<?php echo esc_attr( $user->user_email ); ?>"><?php echo esc_html( $user->user_email ); ?></a></p>
                     <p class="profile-registered"><strong><?php esc_html_e( 'Registered:', 'safety-badges-manager' ); ?></strong> <?php echo date_i18n( get_option( 'date_format' ), strtotime( $user->user_registered ) ); ?></p>
                     
@@ -751,7 +757,7 @@ class SBM_Admin {
 
                 <!-- Test Submissions (Gravity Forms) -->
                 <div class="sbm-card attempts-card">
-                    <h3><?php esc_html_e( 'Quiz Attempt History', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php esc_html_e( 'Exam Attempt History', 'safety-badges-manager' ); ?></h3>
                     <?php if ( empty( $attempts ) ) : ?>
                         <p class="empty-message"><?php esc_html_e( 'No test submission data found.', 'safety-badges-manager' ); ?></p>
                     <?php else : ?>
@@ -1007,8 +1013,13 @@ class SBM_Admin {
                         $company = 'S-Chem';
                     }
 
+                    $display_name = $item->display_name;
+                    if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+                        $display_name = ! empty( $iqama ) ? $iqama : 'User #' . $item->user_id;
+                    }
+
                     fputcsv($output, array(
-                        $item->display_name,
+                        $display_name,
                         $iqama,
                         $company,
                         $status_label,
@@ -1048,7 +1059,7 @@ class SBM_Admin {
                     'Iqaama No.',
                     'Company',
                     'Form ID',
-                    'Quiz Title',
+                    'Exam Title',
                     'Submission Date',
                     'Score (%)',
                     'Result'
@@ -1060,6 +1071,9 @@ class SBM_Admin {
                     $iqama = get_user_meta( $entry->user_id, 'sbm_iqama', true );
                     if ( empty( $iqama ) ) {
                         $iqama = $user ? $user->user_login : '';
+                    }
+                    if ( empty( $user_name ) || in_array( strtolower( trim( $user_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+                        $user_name = ! empty( $iqama ) ? $iqama : ( $user ? $user->user_login : 'User #' . $entry->user_id );
                     }
                     
                     $form_title = 'Form #' . $entry->form_id;
@@ -1182,10 +1196,15 @@ class SBM_Employee_List_Table extends WP_List_Table {
             $actions['print'] = sprintf( '<a href="%s" target="_blank">%s</a>', esc_url( $print_url ), esc_html__( 'Print Badge PDF', 'safety-badges-manager' ) );
         }
 
+        $display_name = $item->display_name;
+        if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+            $display_name = ! empty( $item->iqama ) ? $item->iqama : 'User #' . $item->user_id;
+        }
+
         return sprintf(
             '<strong><a class="row-title" href="%s">%s</a></strong> %s',
             esc_url( $view_url ),
-            esc_html( $item->display_name ),
+            esc_html( $display_name ),
             $this->row_actions( $actions )
         );
     }

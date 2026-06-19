@@ -222,6 +222,9 @@ class SBM_Gravity_Forms {
         $display_name = $this->get_field_value_by_parameter( $form, $entry, 'sbm_name' );
         if ( empty( $display_name ) ) {
             foreach ( $form['fields'] as $field ) {
+                if ( in_array( $field->type, array( 'checkbox', 'radio', 'select', 'multiselect', 'consent', 'quiz' ), true ) ) {
+                    continue;
+                }
                 $lbl = strtolower( $field->label );
                 if ( strpos( $lbl, 'name' ) !== false && strpos( $lbl, 'company' ) === false ) {
                     $display_name = rgar( $entry, (string) $field->id );
@@ -246,6 +249,9 @@ class SBM_Gravity_Forms {
             $submitted_iqama = $this->get_field_value_by_parameter( $form, $entry, 'sbm_iqama' );
             if ( ! $submitted_iqama ) {
                 foreach ( $form['fields'] as $field ) {
+                    if ( in_array( $field->type, array( 'checkbox', 'radio', 'select', 'multiselect', 'consent', 'quiz' ), true ) ) {
+                        continue;
+                    }
                     $lbl = strtolower( $field->label );
                     if ( strpos( $lbl, 'iqama' ) !== false || strpos( $lbl, 'iqaama' ) !== false || strpos( $lbl, 'passport' ) !== false ) {
                         $submitted_iqama = rgar( $entry, (string) $field->id );
@@ -263,6 +269,9 @@ class SBM_Gravity_Forms {
             $submitted_company = $this->get_field_value_by_parameter( $form, $entry, 'sbm_company' );
             if ( ! $submitted_company ) {
                 foreach ( $form['fields'] as $field ) {
+                    if ( in_array( $field->type, array( 'checkbox', 'radio', 'select', 'multiselect', 'consent', 'quiz' ), true ) ) {
+                        continue;
+                    }
                     $lbl = strtolower( $field->label );
                     if ( strpos( $lbl, 'company' ) !== false ) {
                         $submitted_company = rgar( $entry, (string) $field->id );
@@ -639,6 +648,9 @@ class SBM_Gravity_Forms {
         if ( empty( $display_name ) ) {
             // Search by label fallback (excluding Company Name)
             foreach ( $form['fields'] as $field ) {
+                if ( in_array( $field->type, array( 'checkbox', 'radio', 'select', 'multiselect', 'consent', 'quiz' ), true ) ) {
+                    continue;
+                }
                 $lbl = strtolower( $field->label );
                 if ( strpos( $lbl, 'name' ) !== false && strpos( $lbl, 'company' ) === false ) {
                     $display_name = rgar( $entry, (string) $field->id );
@@ -661,6 +673,9 @@ class SBM_Gravity_Forms {
             $submitted_iqama = $this->get_field_value_by_parameter( $form, $entry, 'sbm_iqama' );
             if ( empty( $submitted_iqama ) ) {
                 foreach ( $form['fields'] as $field ) {
+                    if ( in_array( $field->type, array( 'checkbox', 'radio', 'select', 'multiselect', 'consent', 'quiz' ), true ) ) {
+                        continue;
+                    }
                     $lbl = strtolower( $field->label );
                     if ( strpos( $lbl, 'iqama' ) !== false || strpos( $lbl, 'iqaama' ) !== false || strpos( $lbl, 'passport' ) !== false ) {
                         $submitted_iqama = rgar( $entry, (string) $field->id );
@@ -869,7 +884,7 @@ class SBM_Gravity_Forms {
 
                 <!-- Titles -->
                 <h3 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;"><?php esc_html_e( 'Employee Login', 'safety-badges-manager' ); ?></h3>
-                <p style="font-size: 13px; color: #64748b; margin: 0 0 25px 0; line-height: 1.5;"><?php esc_html_e( 'Enter your Iqaama Number to appear for the safety quiz.', 'safety-badges-manager' ); ?></p>
+                <p style="font-size: 13px; color: #64748b; margin: 0 0 25px 0; line-height: 1.5;"><?php esc_html_e( 'Enter your Iqaama Number to appear for the safety exam.', 'safety-badges-manager' ); ?></p>
 
                 <!-- Error Messages -->
                 <?php echo $error_html; ?>
@@ -1149,7 +1164,7 @@ class SBM_Gravity_Forms {
                             <?php endif; ?>
                         </div>
                         <h1><?php esc_html_e( 'Employee Safety Certification Portal', 'safety-badges-manager' ); ?></h1>
-                        <p><?php esc_html_e( 'S-Chem is committed to maintaining the highest safety standards. Access active safety quizzes, manage your credentials, and verify your certification badges from this dashboard.', 'safety-badges-manager' ); ?></p>
+                        <p><?php esc_html_e( 'S-Chem is committed to maintaining the highest safety standards. Access active safety exams, manage your credentials, and verify your certification badges from this dashboard.', 'safety-badges-manager' ); ?></p>
                         <div style="font-size: 13px; color: #64748b;">&copy; <?php echo date('Y'); ?> Saudi Chevron Phillips (S-Chem). All rights reserved.</div>
                     </div>
 
@@ -1164,7 +1179,7 @@ class SBM_Gravity_Forms {
                                 <?php endif; ?>
                             </div>
                             <h3 style="font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;"><?php esc_html_e( 'Employee Login', 'safety-badges-manager' ); ?></h3>
-                            <p style="font-size: 14px; color: #64748b; margin: 0 0 30px 0;"><?php esc_html_e( 'Please sign in to take quizzes and check your active safety badges.', 'safety-badges-manager' ); ?></p>
+                            <p style="font-size: 14px; color: #64748b; margin: 0 0 30px 0;"><?php esc_html_e( 'Please sign in to take exams and check your active safety badges.', 'safety-badges-manager' ); ?></p>
 
                             <?php if ( ! empty( $login_error ) ) : ?>
                                 <div style="background-color: #fef2f2; border: 1px solid #fee2e2; color: #dc2626; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; text-align: left;">
@@ -1209,6 +1224,67 @@ class SBM_Gravity_Forms {
         }
         $company = get_user_meta( $user_id, 'sbm_company', true );
 
+        // Self-healing display name if corrupt (e.g. TRUE, 1, false, etc.)
+        $display_name = $user->display_name;
+        if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+            $found_name = '';
+            if ( class_exists( 'GFAPI' ) ) {
+                $search_criteria = array(
+                    'status'        => 'active',
+                    'field_filters' => array(
+                        array(
+                            'key'   => 'created_by',
+                            'value' => $user_id,
+                        ),
+                    ),
+                );
+                $entries = GFAPI::get_entries( 0, $search_criteria );
+                if ( ! empty( $entries ) ) {
+                    foreach ( $entries as $ent ) {
+                        $f = GFAPI::get_form( $ent['form_id'] );
+                        if ( $f ) {
+                            // 1. Try search by sbm_name input parameter
+                            foreach ( $f['fields'] as $field ) {
+                                if ( rgar( $field, 'inputName' ) === 'sbm_name' ) {
+                                    $val = rgar( $ent, (string) $field->id );
+                                    if ( ! empty( $val ) && ! in_array( strtolower( trim( $val ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+                                        $found_name = $val;
+                                        break 2;
+                                    }
+                                }
+                            }
+                            // 2. Try search by label fallback
+                            foreach ( $f['fields'] as $field ) {
+                                if ( in_array( $field->type, array( 'checkbox', 'radio', 'select', 'multiselect', 'consent', 'quiz' ), true ) ) {
+                                    continue;
+                                }
+                                $lbl = strtolower( $field->label );
+                                if ( strpos( $lbl, 'name' ) !== false && strpos( $lbl, 'company' ) === false ) {
+                                    $val = rgar( $ent, (string) $field->id );
+                                    if ( ! empty( $val ) && ! in_array( strtolower( trim( $val ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+                                        $found_name = $val;
+                                        break 2;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if ( ! empty( $found_name ) ) {
+                $display_name = $found_name;
+                wp_update_user( array(
+                    'ID'           => $user_id,
+                    'display_name' => $display_name,
+                    'first_name'   => $display_name,
+                ) );
+                $user = wp_get_current_user();
+            } else {
+                $display_name = ! empty( $iqama ) ? $iqama : $user->user_login;
+                $user->display_name = $display_name;
+            }
+        }
+
         // 2. QUIZ MODE: Render a selected active Gravity Forms quiz page template
         $quiz_id = isset( $_GET['quiz_id'] ) ? intval( $_GET['quiz_id'] ) : 0;
         if ( $quiz_id ) {
@@ -1233,7 +1309,7 @@ class SBM_Gravity_Forms {
                                 <?php else : ?>
                                     <span class="brand-text">S-CHEM</span>
                                 <?php endif; ?>
-                                <span class="brand-text">| Quiz Portal</span>
+                                <span class="brand-text">| Exam Portal</span>
                             </div>
                             <div>
                                 <a href="<?php echo esc_url( home_url('/') ); ?>" class="btn-back">&larr; Back to Dashboard</a>
@@ -1397,7 +1473,7 @@ class SBM_Gravity_Forms {
                                 <?php else : ?>
                                     <div style="padding: 20px 0; color: #64748b;">
                                         <span class="dashicons dashicons-shield-alt" style="font-size: 48px; width: 48px; height: 48px; color: #94a3b8; margin-bottom: 10px;"></span>
-                                        <p style="font-size: 14px; margin: 0 0 15px 0;">You do not have an active safety badge. Please complete an active quiz on the right to receive your badge.</p>
+                                        <p style="font-size: 14px; margin: 0 0 15px 0;">You do not have an active safety badge. Please complete an active exam on the right to receive your badge.</p>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -1407,7 +1483,7 @@ class SBM_Gravity_Forms {
                         <div>
                             <!-- Active Quizzes -->
                             <div class="sbm-portal-card">
-                                <h3><?php esc_html_e( 'Available Safety Quizzes', 'safety-badges-manager' ); ?></h3>
+                                <h3><?php esc_html_e( 'Available Safety Exams', 'safety-badges-manager' ); ?></h3>
                                 <?php if ( ! empty( $active_quizzes ) ) : ?>
                                     <div class="sbm-quizzes-grid">
                                         <?php foreach ( $active_quizzes as $quiz ) : 
@@ -1436,13 +1512,13 @@ class SBM_Gravity_Forms {
                                         <?php endforeach; ?>
                                     </div>
                                 <?php else : ?>
-                                    <p style="font-style: italic; color: #64748b; margin: 0;"><?php esc_html_e( 'No active safety quizzes are currently available.', 'safety-badges-manager' ); ?></p>
+                                    <p style="font-style: italic; color: #64748b; margin: 0;"><?php esc_html_e( 'No active safety exams are currently available.', 'safety-badges-manager' ); ?></p>
                                 <?php endif; ?>
                             </div>
 
                             <!-- Attempt History -->
                             <div class="sbm-portal-card">
-                                <h3><?php esc_html_e( 'My Quiz Attempt History', 'safety-badges-manager' ); ?></h3>
+                                <h3><?php esc_html_e( 'My Exam Attempt History', 'safety-badges-manager' ); ?></h3>
                                 <?php if ( ! empty( $user_attempts ) ) : ?>
                                     <div class="sbm-history-table-container">
                                         <table class="sbm-history-table">
@@ -1473,7 +1549,7 @@ class SBM_Gravity_Forms {
                                         </table>
                                     </div>
                                 <?php else : ?>
-                                    <p style="font-style: italic; color: #64748b; margin: 0;"><?php esc_html_e( 'You have not attempted any safety quizzes yet.', 'safety-badges-manager' ); ?></p>
+                                    <p style="font-style: italic; color: #64748b; margin: 0;"><?php esc_html_e( 'You have not attempted any safety exams yet.', 'safety-badges-manager' ); ?></p>
                                 <?php endif; ?>
                             </div>
                         </div>

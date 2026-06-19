@@ -159,7 +159,7 @@ class SBM_Cron {
                 esc_html( $badge->badge_number ),
                 date_i18n( get_option( 'date_format' ), strtotime( $badge->expiry_date ) )
             ),
-            'Retake Quiz Now',
+            'Retake Exam Now',
             home_url( '/safety-quiz/' )
         );
 
