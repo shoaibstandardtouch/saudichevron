@@ -124,6 +124,17 @@ class SBM_Admin {
      */
     public function render_dashboard_page() {
         $stats = $this->db->get_dashboard_stats();
+        
+        $current_month_passes = 0;
+        $current_month_fails  = 0;
+        if ( ! empty( $stats['trends'] ) ) {
+            $current_month_trend = end( $stats['trends'] );
+            if ( $current_month_trend ) {
+                $current_month_passes = $current_month_trend['passes'];
+                $current_month_fails  = $current_month_trend['fails'];
+            }
+        }
+        $recent_certifications = $this->db->get_recent_certifications( 5 );
         ?>
         <div class="wrap sbm-dashboard-wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Safety Compliance Dashboard', 'safety-badges-manager' ); ?></h1>
@@ -135,13 +146,13 @@ class SBM_Admin {
                     <h3><?php esc_html_e( 'Active Badges', 'safety-badges-manager' ); ?></h3>
                     <p class="stat-number"><?php echo esc_html( $stats['compliance']['active'] ); ?></p>
                 </div>
-                <div class="sbm-card card-expired">
-                    <h3><?php esc_html_e( 'Expired Badges', 'safety-badges-manager' ); ?></h3>
-                    <p class="stat-number"><?php echo esc_html( $stats['compliance']['expired'] ); ?></p>
+                <div class="sbm-card card-active" style="border-left-color: #059669;">
+                    <h3><?php esc_html_e( 'Passed (Current Month)', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $current_month_passes ); ?></p>
                 </div>
-                <div class="sbm-card card-pending">
-                    <h3><?php esc_html_e( 'Untrained Employees', 'safety-badges-manager' ); ?></h3>
-                    <p class="stat-number"><?php echo esc_html( $stats['compliance']['none'] ); ?></p>
+                <div class="sbm-card card-expired" style="border-left-color: #dc2626;">
+                    <h3><?php esc_html_e( 'Failed (Current Month)', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $current_month_fails ); ?></p>
                 </div>
             </div>
 
@@ -172,6 +183,43 @@ class SBM_Admin {
                         <canvas id="sbmForecastChart"></canvas>
                     </div>
                 </div>
+            </div>
+
+            <!-- Recent Certified Employees -->
+            <div class="sbm-card" style="margin-top: 25px; margin-bottom: 25px;">
+                <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                    <?php esc_html_e( 'Recent Certified Employees', 'safety-badges-manager' ); ?>
+                </h3>
+                <?php if ( empty( $recent_certifications ) ) : ?>
+                    <p class="empty-message"><?php esc_html_e( 'No certifications recorded yet.', 'safety-badges-manager' ); ?></p>
+                <?php else : ?>
+                    <div style="overflow-x: auto;">
+                        <table class="wp-list-table widefat fixed striped" style="border: none; box-shadow: none;">
+                            <thead>
+                                <tr>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Employee Name', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Iqaama No.', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Company', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Badge Number', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Certified On', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Expires On', 'safety-badges-manager' ); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ( $recent_certifications as $cert ) : ?>
+                                    <tr>
+                                        <td><strong><a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $cert->user_id ) ); ?>"><?php echo esc_html( SBM()->gravity_forms->heal_user_display_name( $cert->user_id ) ); ?></a></strong></td>
+                                        <td><?php echo esc_html( $cert->iqama ); ?></td>
+                                        <td><?php echo esc_html( $cert->company ); ?></td>
+                                        <td><code><?php echo esc_html( $cert->badge_number ); ?></code></td>
+                                        <td><?php echo date_i18n( get_option( 'date_format' ), strtotime( $cert->pass_date ) ); ?></td>
+                                        <td><?php echo date_i18n( get_option( 'date_format' ), strtotime( $cert->expiry_date ) ); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Embed Data securely for Chart.js -->
@@ -594,6 +642,98 @@ class SBM_Admin {
                     companyCompliance: <?php echo wp_json_encode( $company_compliance ); ?>
                 };
             </script>
+
+            <!-- Detailed Individual Attempts Table -->
+            <div class="sbm-card" style="margin-top: 25px;">
+                <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                    <?php esc_html_e( 'Individual Candidate Exam Results', 'safety-badges-manager' ); ?>
+                </h3>
+                <?php if ( empty( $entries ) ) : ?>
+                    <p class="empty-message"><?php esc_html_e( 'No candidate attempts found matching the filters.', 'safety-badges-manager' ); ?></p>
+                <?php else : ?>
+                    <div style="overflow-x: auto;">
+                        <table class="wp-list-table widefat fixed striped" style="border: none; box-shadow: none;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px; font-weight: 600;"><?php esc_html_e( 'Entry ID', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Employee Name', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Iqaama No.', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Company', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Exam Title', 'safety-badges-manager' ); ?></th>
+                                    <th style="font-weight: 600;"><?php esc_html_e( 'Submission Date', 'safety-badges-manager' ); ?></th>
+                                    <th style="width: 100px; font-weight: 600;"><?php esc_html_e( 'Score', 'safety-badges-manager' ); ?></th>
+                                    <th style="width: 100px; font-weight: 600;"><?php esc_html_e( 'Result', 'safety-badges-manager' ); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php 
+                                // Paginate entries in PHP for reports list table
+                                $per_page     = 20;
+                                $total_items  = count( $entries );
+                                $total_pages  = ceil( $total_items / $per_page );
+                                $current_page = isset( $_GET['paged_rep'] ) ? max( 1, intval( $_GET['paged_rep'] ) ) : 1;
+                                $offset       = ( $current_page - 1 ) * $per_page;
+                                $paged_entries = array_slice( $entries, $offset, $per_page );
+
+                                foreach ( $paged_entries as $entry ) :
+                                    $user = get_userdata( $entry->user_id );
+                                    $user_name = SBM()->gravity_forms->heal_user_display_name( $entry->user_id );
+                                    $iqama = get_user_meta( $entry->user_id, 'sbm_iqama', true );
+                                    if ( empty( $iqama ) ) {
+                                        $iqama = $user ? $user->user_login : '';
+                                    }
+                                    
+                                    $form_title = 'Form #' . $entry->form_id;
+                                    if ( class_exists( 'GFAPI' ) ) {
+                                        $form_info = GFAPI::get_form( $entry->form_id );
+                                        if ( $form_info ) {
+                                            $form_title = $form_info['title'];
+                                        }
+                                    }
+                                    $score_text = $entry->score_percent !== null ? floatval( $entry->score_percent ) . '%' : '-';
+                                    $status_text = $entry->is_pass == '1' ? 'Passed' : 'Failed';
+                                    $status_class = $entry->is_pass == '1' ? 'status-passed' : 'status-failed';
+                                    ?>
+                                    <tr>
+                                        <td><?php echo esc_html( $entry->entry_id ); ?></td>
+                                        <td><strong><a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $entry->user_id ) ); ?>"><?php echo esc_html( $user_name ); ?></a></strong></td>
+                                        <td><?php echo esc_html( $iqama ); ?></td>
+                                        <td><?php echo esc_html( $entry->company ); ?></td>
+                                        <td><?php echo esc_html( $form_title ); ?></td>
+                                        <td><?php echo date_i18n( get_option( 'date_format' ) . ' H:i', strtotime( $entry->date_created ) ); ?></td>
+                                        <td><?php echo esc_html( $score_text ); ?></td>
+                                        <td>
+                                            <span class="attempt-result-tag <?php echo esc_attr( $status_class ); ?>" style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
+                                                <?php echo esc_html( $status_text ); ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <?php if ( $total_pages > 1 ) : ?>
+                        <div class="tablenav" style="margin-top: 15px;">
+                            <div class="tablenav-pages">
+                                <span class="displaying-num"><?php printf( esc_html__( '%s attempts', 'safety-badges-manager' ), number_format_i18n( $total_items ) ); ?></span>
+                                <span class="pagination-links">
+                                    <?php
+                                    echo paginate_links( array(
+                                        'base'      => add_query_arg( 'paged_rep', '%#%' ),
+                                        'format'    => '',
+                                        'prev_text' => '&laquo;',
+                                        'next_text' => '&raquo;',
+                                        'total'     => $total_pages,
+                                        'current'   => $current_page,
+                                    ) );
+                                    ?>
+                                </span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
         <?php
     }
@@ -680,15 +820,17 @@ class SBM_Admin {
             <!-- Employee Settings Card -->
             <div class="sbm-card employee-settings-card" style="margin-bottom: 25px; margin-top: 25px;">
                 <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                    <?php esc_html_e( 'Employee Settings', 'safety-badges-manager' ); ?>
+                    <?php esc_html_e( 'Employee Settings & Permissions', 'safety-badges-manager' ); ?>
                 </h3>
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                     <?php wp_nonce_field( 'sbm_save_employee_settings_' . $user_id, 'sbm_employee_settings_nonce' ); ?>
                     <input type="hidden" name="action" value="sbm_update_employee_settings" />
                     <input type="hidden" name="user_id" value="<?php echo esc_attr( $user_id ); ?>" />
                     
-                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 250px;">
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        
+                        <!-- Badge Printing -->
+                        <div>
                             <label for="sbm_allow_badge_printing" style="font-weight: 600; display: block; margin-bottom: 5px;">
                                 <?php esc_html_e( 'Badge Printing Permission', 'safety-badges-manager' ); ?>
                             </label>
@@ -702,13 +844,87 @@ class SBM_Admin {
                                 <option value="yes" <?php selected( $allow_printing, 'yes' ); ?>><?php esc_html_e( 'Allowed', 'safety-badges-manager' ); ?></option>
                                 <option value="no" <?php selected( $allow_printing, 'no' ); ?>><?php esc_html_e( 'Disallowed', 'safety-badges-manager' ); ?></option>
                             </select>
-                            <span class="description" style="display: inline-block; margin-left: 10px; vertical-align: middle;">
+                            <span class="description" style="margin-left: 10px;">
                                 <?php esc_html_e( 'Determine if this employee can print their badge from their portal.', 'safety-badges-manager' ); ?>
                             </span>
                         </div>
                         
-                        <div>
-                            <input type="submit" name="save_employee_settings" class="button button-primary" style="background-color: #0f172a !important; border-color: #0f172a !important;" value="<?php esc_html_e( 'Save Settings', 'safety-badges-manager' ); ?>" />
+                        <!-- Assigned Exams & Allowed Retakes -->
+                        <?php
+                        $safety_forms = array();
+                        if ( class_exists( 'GFAPI' ) ) {
+                            $forms = GFAPI::get_forms();
+                            foreach ( $forms as $f ) {
+                                if ( rgar( $f, 'sbm_enabled' ) ) {
+                                    $safety_forms[] = $f;
+                                }
+                            }
+                        }
+                        
+                        $assigned_exams = get_user_meta( $user_id, 'sbm_assigned_exams', true );
+                        if ( ! is_array( $assigned_exams ) ) {
+                            $assigned_exams = array();
+                        }
+                        
+                        $allowed_retakes = get_user_meta( $user_id, 'sbm_allowed_retakes', true );
+                        if ( ! is_array( $allowed_retakes ) ) {
+                            $allowed_retakes = array();
+                        }
+                        ?>
+                        <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+                            
+                            <!-- Assigned Exams Checklist -->
+                            <div style="flex: 1; min-width: 250px;">
+                                <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                                    <?php esc_html_e( 'Assigned Exams', 'safety-badges-manager' ); ?>
+                                </label>
+                                <span class="description" style="display: block; margin-bottom: 10px;">
+                                    <?php esc_html_e( 'Check the exams that should appear on this employee\'s dashboard portal. (Leave empty to allow all exams)', 'safety-badges-manager' ); ?>
+                                </span>
+                                <?php if ( empty( $safety_forms ) ) : ?>
+                                    <p style="font-style: italic; color: #64748b;"><?php esc_html_e( 'No safety exams configured yet.', 'safety-badges-manager' ); ?></p>
+                                <?php else : ?>
+                                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; background: #f8fafc;">
+                                        <?php foreach ( $safety_forms as $form ) : ?>
+                                            <div style="margin-bottom: 6px;">
+                                                <label>
+                                                    <input type="checkbox" name="sbm_assigned_exams[]" value="<?php echo esc_attr( $form['id'] ); ?>" <?php checked( in_array( intval( $form['id'] ), $assigned_exams ), true ); ?> />
+                                                    <?php echo esc_html( $form['title'] ); ?>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <!-- Allowed Retakes Checklist -->
+                            <div style="flex: 1; min-width: 250px;">
+                                <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                                    <?php esc_html_e( 'Allow Retakes / Re-attempts', 'safety-badges-manager' ); ?>
+                                </label>
+                                <span class="description" style="display: block; margin-bottom: 10px;">
+                                    <?php esc_html_e( 'Authorize a one-time retake for exams this candidate has already taken.', 'safety-badges-manager' ); ?>
+                                </span>
+                                <?php if ( empty( $safety_forms ) ) : ?>
+                                    <p style="font-style: italic; color: #64748b;"><?php esc_html_e( 'No safety exams configured yet.', 'safety-badges-manager' ); ?></p>
+                                <?php else : ?>
+                                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; background: #f8fafc;">
+                                        <?php foreach ( $safety_forms as $form ) : ?>
+                                            <div style="margin-bottom: 6px;">
+                                                <label>
+                                                    <input type="checkbox" name="sbm_allowed_retakes[]" value="<?php echo esc_attr( $form['id'] ); ?>" <?php checked( in_array( intval( $form['id'] ), $allowed_retakes ), true ); ?> />
+                                                    <?php echo esc_html( $form['title'] ); ?>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            
+                        </div>
+
+                        <div style="margin-top: 10px;">
+                            <input type="submit" name="save_employee_settings" class="button button-primary" style="background-color: #0f172a !important; border-color: #0f172a !important;" value="<?php esc_attr_e( 'Save Settings & Permissions', 'safety-badges-manager' ); ?>" />
                         </div>
                     </div>
                 </form>
@@ -916,9 +1132,6 @@ class SBM_Admin {
         wp_safe_redirect( admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $badge->user_id ) );
     }
 
-    /**
-     * Handle saving of individual employee settings (e.g. printing toggle).
-     */
     public function handle_employee_settings_update() {
         if ( ! current_user_can( 'manage_safety_training' ) ) {
             wp_die( esc_html__( 'Unauthorized user.', 'safety-badges-manager' ) );
@@ -933,8 +1146,15 @@ class SBM_Admin {
         check_admin_referer( 'sbm_save_employee_settings_' . $user_id, 'sbm_employee_settings_nonce' );
 
         $allow_printing = isset( $_POST['sbm_allow_badge_printing'] ) && $_POST['sbm_allow_badge_printing'] === 'no' ? 'no' : 'yes';
-
         update_user_meta( $user_id, 'sbm_allow_badge_printing', $allow_printing );
+
+        // Save Assigned Exams
+        $assigned_exams = isset( $_POST['sbm_assigned_exams'] ) ? array_map( 'intval', $_POST['sbm_assigned_exams'] ) : array();
+        update_user_meta( $user_id, 'sbm_assigned_exams', $assigned_exams );
+
+        // Save Allowed Retakes
+        $allowed_retakes = isset( $_POST['sbm_allowed_retakes'] ) ? array_map( 'intval', $_POST['sbm_allowed_retakes'] ) : array();
+        update_user_meta( $user_id, 'sbm_allowed_retakes', $allowed_retakes );
 
         // Redirect back with success message
         wp_safe_redirect( admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $user_id . '&settings_updated=1' ) );

@@ -317,6 +317,13 @@ class SBM_Gravity_Forms {
                 do_action( 'sbm_badge_created', $badge_id, $user_id, $badge_number );
             }
         }
+
+        // Consume allowed retake permission upon submission
+        $allowed_retakes = get_user_meta( $user_id, 'sbm_allowed_retakes', true );
+        if ( is_array( $allowed_retakes ) && in_array( intval( $form['id'] ), $allowed_retakes, true ) ) {
+            $allowed_retakes = array_diff( $allowed_retakes, array( intval( $form['id'] ) ) );
+            update_user_meta( $user_id, 'sbm_allowed_retakes', $allowed_retakes );
+        }
     }
 
     /**
@@ -377,13 +384,6 @@ class SBM_Gravity_Forms {
             }
         }
 
-        // Start session if not started
-        if ( ! session_id() && ! headers_sent() ) {
-            session_start();
-        }
-
-        $session_key = 'sbm_shuffled_fields_' . $form['id'];
-
         // Separate fields into quiz and other (form headers, submit, pages, etc.)
         $quiz_fields  = array();
         $other_fields = array();
@@ -400,11 +400,17 @@ class SBM_Gravity_Forms {
             return $form;
         }
 
-        // Restore order from session if exists, otherwise shuffle and save
-        if ( isset( $_SESSION[ $session_key ] ) && is_array( $_SESSION[ $session_key ] ) ) {
-            $shuffled_ids = $_SESSION[ $session_key ];
-            $shuffled_quiz_fields = array();
-            
+        $shuffled_ids = array();
+
+        // 1. Try to restore field order from POST payload (for multi-page validation or submission)
+        $post_shuffled = rgpost( 'input_9999' );
+        if ( ! empty( $post_shuffled ) ) {
+            $shuffled_ids = array_map( 'intval', explode( ',', $post_shuffled ) );
+        }
+
+        $shuffled_quiz_fields = array();
+
+        if ( ! empty( $shuffled_ids ) ) {
             // Map quiz fields by ID
             $fields_by_id = array();
             foreach ( $quiz_fields as $field ) {
@@ -417,16 +423,17 @@ class SBM_Gravity_Forms {
                 }
             }
 
-            // Sync check: ensure field counts match
+            // Sync check: ensure field counts match. If not, fallback to normal shuffle
             if ( count( $shuffled_quiz_fields ) !== count( $quiz_fields ) ) {
                 $shuffled_quiz_fields = $quiz_fields;
                 shuffle( $shuffled_quiz_fields );
-                $_SESSION[ $session_key ] = wp_list_pluck( $shuffled_quiz_fields, 'id' );
+                $shuffled_ids = wp_list_pluck( $shuffled_quiz_fields, 'id' );
             }
         } else {
+            // 2. Initial page load: shuffle fields and set up dynamic hidden field
             $shuffled_quiz_fields = $quiz_fields;
             shuffle( $shuffled_quiz_fields );
-            $_SESSION[ $session_key ] = wp_list_pluck( $shuffled_quiz_fields, 'id' );
+            $shuffled_ids = wp_list_pluck( $shuffled_quiz_fields, 'id' );
         }
 
         // Reassemble fields, placing randomized quiz fields in the first quiz field location
@@ -444,22 +451,26 @@ class SBM_Gravity_Forms {
             }
         }
 
+        // 3. Inject our hidden field containing the stable shuffle order payload
+        if ( class_exists( 'GF_Fields' ) ) {
+            $hidden_field = GF_Fields::create( array(
+                'type'         => 'hidden',
+                'id'           => 9999,
+                'label'        => 'SBM Shuffled Order',
+                'defaultValue' => implode( ',', $shuffled_ids ),
+            ) );
+            $new_fields[] = $hidden_field;
+        }
+
         $form['fields'] = $new_fields;
         return $form;
     }
 
     /**
-     * Clear shuffling session after quiz is completed.
+     * Clear shuffling session after quiz is completed (Deprecated).
      */
     public function clear_shuffled_session( $entry, $form ) {
-        if ( ! session_id() && ! headers_sent() ) {
-            session_start();
-        }
-
-        $session_key = 'sbm_shuffled_fields_' . $form['id'];
-        if ( isset( $_SESSION[ $session_key ] ) ) {
-            unset( $_SESSION[ $session_key ] );
-        }
+        // Deprecated - sessionless shuffling is used now
     }
 
     /**
@@ -580,7 +591,7 @@ class SBM_Gravity_Forms {
         }
 
         $display_name = $user->display_name;
-        if ( empty( $display_name ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
+        if ( empty( $display_name ) || is_numeric( trim( $display_name ) ) || in_array( strtolower( trim( $display_name ) ), array( '1', '0', 'true', 'false', 'yes', 'no' ), true ) ) {
             $found_name = '';
             if ( class_exists( 'GFAPI' ) ) {
                 $search_criteria = array(
@@ -1351,18 +1362,32 @@ class SBM_Gravity_Forms {
         // 3. DASHBOARD MODE: Render Employee Portal Dashboard page
         $active_badge = $this->db->get_active_badge_by_user( $user_id );
 
+        // Fetch assigned and allowed retake exams
+        $assigned_exams = get_user_meta( $user_id, 'sbm_assigned_exams', true );
+        if ( ! is_array( $assigned_exams ) ) {
+            $assigned_exams = array();
+        }
+        $allowed_retakes = get_user_meta( $user_id, 'sbm_allowed_retakes', true );
+        if ( ! is_array( $allowed_retakes ) ) {
+            $allowed_retakes = array();
+        }
+
         // Fetch active quizzes
         $active_quizzes = array();
         if ( class_exists( 'GFAPI' ) ) {
             $forms = GFAPI::get_forms();
             foreach ( $forms as $f ) {
                 if ( rgar( $f, 'is_active' ) && rgar( $f, 'sbm_enabled' ) ) {
+                    // Filter by assigned exams if defined
+                    if ( ! empty( $assigned_exams ) && ! in_array( intval( $f['id'] ), $assigned_exams, true ) ) {
+                        continue;
+                    }
                     $active_quizzes[] = $f;
                 }
             }
         }
 
-        // Fetch history
+        // Fetch history (Needed only for calculating attempt statuses on dashboard)
         $user_attempts = array();
         if ( class_exists( 'GFAPI' ) ) {
             $search_criteria = array(
@@ -1493,7 +1518,7 @@ class SBM_Gravity_Forms {
                             </div>
                         </div>
 
-                        <!-- Right Side: Active Quizzes & Attempt History -->
+                        <!-- Right Side: Active Quizzes -->
                         <div>
                             <!-- Active Quizzes -->
                             <div class="sbm-portal-card">
@@ -1518,7 +1543,11 @@ class SBM_Gravity_Forms {
                                                     <p class="meta">Passing Score: <?php echo esc_html( rgar( $quiz, 'sbm_pass_percent', 80 ) ); ?>%</p>
                                                 </div>
                                                 <?php if ( $has_passed || $has_attempted ) : ?>
-                                                    <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start btn-retake">Retake Exam</a>
+                                                    <?php if ( in_array( $quiz_id, $allowed_retakes, true ) ) : ?>
+                                                        <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start btn-retake">Retake Exam</a>
+                                                    <?php else : ?>
+                                                        <span style="font-size: 13px; color: #64748b; font-weight: 600; font-style: italic; display: inline-block; padding: 6px 12px;"><?php esc_html_e( 'Completed', 'safety-badges-manager' ); ?></span>
+                                                    <?php endif; ?>
                                                 <?php else : ?>
                                                     <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start">Start Exam</a>
                                                 <?php endif; ?>
@@ -1527,43 +1556,6 @@ class SBM_Gravity_Forms {
                                     </div>
                                 <?php else : ?>
                                     <p style="font-style: italic; color: #64748b; margin: 0;"><?php esc_html_e( 'No active safety exams are currently available.', 'safety-badges-manager' ); ?></p>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Attempt History -->
-                            <div class="sbm-portal-card">
-                                <h3><?php esc_html_e( 'My Exam Attempt History', 'safety-badges-manager' ); ?></h3>
-                                <?php if ( ! empty( $user_attempts ) ) : ?>
-                                    <div class="sbm-history-table-container">
-                                        <table class="sbm-history-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>Exam Name</th>
-                                                    <th>Score</th>
-                                                    <th>Result</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ( $user_attempts as $att ) : ?>
-                                                    <tr>
-                                                        <td><?php echo date_i18n( get_option( 'date_format' ) . ' H:i', strtotime( $att['date'] ) ); ?></td>
-                                                        <td><?php echo esc_html( $att['form_title'] ); ?></td>
-                                                        <td><?php echo esc_html( $att['score'] ); ?></td>
-                                                        <td>
-                                                            <?php if ( $att['pass'] ) : ?>
-                                                                <span class="sbm-status-tag pass">Passed</span>
-                                                            <?php else : ?>
-                                                                <span class="sbm-status-tag fail">Failed</span>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                <?php else : ?>
-                                    <p style="font-style: italic; color: #64748b; margin: 0;"><?php esc_html_e( 'You have not attempted any safety exams yet.', 'safety-badges-manager' ); ?></p>
                                 <?php endif; ?>
                             </div>
                         </div>

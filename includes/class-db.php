@@ -459,6 +459,32 @@ class SBM_DB {
     }
 
     /**
+     * Get recent certifications (passed exams) for dashboard display.
+     */
+    public function get_recent_certifications( $limit = 5 ) {
+        global $wpdb;
+        $query = "
+            SELECT 
+                b.id,
+                b.user_id,
+                b.form_id,
+                b.badge_number,
+                b.pass_date,
+                b.expiry_date,
+                u.display_name,
+                COALESCE(um_iqama.meta_value, u.user_login) as iqama,
+                COALESCE(um_comp.meta_value, 'S-Chem') as company
+            FROM {$this->table_name} b
+            INNER JOIN {$wpdb->users} u ON b.user_id = u.ID
+            LEFT JOIN {$wpdb->usermeta} um_iqama ON u.ID = um_iqama.user_id AND um_iqama.meta_key = 'sbm_iqama'
+            LEFT JOIN {$wpdb->usermeta} um_comp ON u.ID = um_comp.user_id AND um_comp.meta_key = 'sbm_company'
+            ORDER BY b.pass_date DESC
+            LIMIT %d
+        ";
+        return $wpdb->get_results( $wpdb->prepare( $query, $limit ) );
+    }
+
+    /**
      * Get reports data by joining Gravity Forms entry table.
      */
     public function get_reports_data( $args = array() ) {
