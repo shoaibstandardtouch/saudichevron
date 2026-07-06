@@ -38,6 +38,7 @@ class SBM_Admin {
         // Handle admin actions (e.g. manual status updates)
         add_action( 'admin_post_sbm_update_status', array( $this, 'handle_manual_status_update' ) );
         add_action( 'admin_post_sbm_update_employee_settings', array( $this, 'handle_employee_settings_update' ) );
+        add_action( 'admin_post_sbm_add_employee', array( $this, 'handle_add_employee_submit' ) );
 
         // Register Global Settings Search AJAX handler
         add_action( 'wp_ajax_sbm_global_search', array( $this, 'handle_global_search' ) );
@@ -262,6 +263,12 @@ class SBM_Admin {
             return;
         }
 
+        // Handle add new employee view
+        if ( isset( $_GET['action'] ) && 'add' === $_GET['action'] ) {
+            $this->render_add_employee_view();
+            return;
+        }
+
         // Fetch filter inputs
         $search         = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
         $company_filter = isset( $_GET['company_filter'] ) ? sanitize_text_field( $_GET['company_filter'] ) : '';
@@ -300,7 +307,14 @@ class SBM_Admin {
         ?>
         <div class="wrap sbm-dashboard-wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Employee Records', 'safety-badges-manager' ); ?></h1>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Add New Employee', 'safety-badges-manager' ); ?></a>
             <hr class="wp-header-end">
+
+            <?php if ( isset( $_GET['message'] ) && 'employee_added' === $_GET['message'] ) : ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><?php esc_html_e( 'Employee created successfully.', 'safety-badges-manager' ); ?></p>
+                </div>
+            <?php endif; ?>
 
             <!-- Filter Card -->
             <div class="sbm-card sbm-filter-card" style="margin-bottom: 20px; margin-top: 20px;">
@@ -760,6 +774,103 @@ class SBM_Admin {
         <?php
     }
 
+    /**
+     * Handle the submission of the custom Add New Employee form.
+     */
+    public function handle_add_employee_submit() {
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
+            wp_die( esc_html__( 'Unauthorized access.', 'safety-badges-manager' ) );
+        }
+
+        check_admin_referer( 'sbm_add_employee', 'sbm_add_employee_nonce' );
+
+        $username   = sanitize_user( $_POST['employee_username'] );
+        $email      = sanitize_email( $_POST['employee_email'] );
+        $first_name = sanitize_text_field( $_POST['employee_first_name'] );
+        $last_name  = sanitize_text_field( $_POST['employee_last_name'] );
+        $password   = $_POST['employee_password'];
+        $company    = sanitize_text_field( $_POST['employee_company'] );
+        $iqama      = sanitize_text_field( $_POST['employee_iqama'] );
+
+        if ( username_exists( $username ) || email_exists( $email ) ) {
+            wp_die( esc_html__( 'Username or email already exists.', 'safety-badges-manager' ) );
+        }
+
+        $user_id = wp_create_user( $username, $password, $email );
+        
+        if ( is_wp_error( $user_id ) ) {
+            wp_die( $user_id->get_error_message() );
+        }
+
+        wp_update_user( array(
+            'ID'         => $user_id,
+            'first_name' => $first_name,
+            'last_name'  => $last_name,
+            'role'       => 'subscriber'
+        ) );
+
+        update_user_meta( $user_id, 'sbm_company', $company );
+        update_user_meta( $user_id, 'sbm_iqama', $iqama );
+
+        wp_redirect( admin_url( 'admin.php?page=safety-employees&message=employee_added' ) );
+        exit;
+    }
+
+    /**
+     * Render the Add New Employee form natively.
+     */
+    private function render_add_employee_view() {
+        ?>
+        <div class="wrap sbm-dashboard-wrap">
+            <h1 class="wp-heading-inline"><a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees' ) ); ?>" style="text-decoration:none; color:inherit;">&larr; <?php esc_html_e( 'Back to Employees', 'safety-badges-manager' ); ?></a> / <?php esc_html_e( 'Add New Employee', 'safety-badges-manager' ); ?></h1>
+            <hr class="wp-header-end">
+
+            <div class="sbm-card" style="max-width: 600px; margin-top: 20px;">
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <input type="hidden" name="action" value="sbm_add_employee" />
+                    <?php wp_nonce_field( 'sbm_add_employee', 'sbm_add_employee_nonce' ); ?>
+                    
+                    <table class="form-table" role="presentation">
+                        <tbody>
+                            <tr>
+                                <th scope="row"><label for="employee_username"><?php esc_html_e( 'Username (required)', 'safety-badges-manager' ); ?></label></th>
+                                <td><input type="text" name="employee_username" id="employee_username" class="regular-text" required /></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="employee_email"><?php esc_html_e( 'Email (required)', 'safety-badges-manager' ); ?></label></th>
+                                <td><input type="email" name="employee_email" id="employee_email" class="regular-text" required /></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="employee_first_name"><?php esc_html_e( 'First Name', 'safety-badges-manager' ); ?></label></th>
+                                <td><input type="text" name="employee_first_name" id="employee_first_name" class="regular-text" /></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="employee_last_name"><?php esc_html_e( 'Last Name', 'safety-badges-manager' ); ?></label></th>
+                                <td><input type="text" name="employee_last_name" id="employee_last_name" class="regular-text" /></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="employee_company"><?php esc_html_e( 'Contracting Company', 'safety-badges-manager' ); ?></label></th>
+                                <td><input type="text" name="employee_company" id="employee_company" class="regular-text" /></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="employee_iqama"><?php esc_html_e( 'Iqama Number', 'safety-badges-manager' ); ?></label></th>
+                                <td><input type="text" name="employee_iqama" id="employee_iqama" class="regular-text" /></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><label for="employee_password"><?php esc_html_e( 'Password (required)', 'safety-badges-manager' ); ?></label></th>
+                                <td><input type="password" name="employee_password" id="employee_password" class="regular-text" required autocomplete="new-password" /></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <p class="submit" style="margin-top: 20px;">
+                        <input type="submit" name="submit" id="submit" class="button button-primary" value="<?php esc_attr_e( 'Add New Employee', 'safety-badges-manager' ); ?>">
+                    </p>
+                </form>
+            </div>
+        </div>
+        <?php
+    }
 
     /**
      * Render full test history and details for a single employee.
@@ -1515,13 +1626,13 @@ class SBM_Admin {
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
                     <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">5</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
-                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Register Employees / User Accounts', 'safety-badges-manager' ); ?></h3>
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Register Employees', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
-                            <?php esc_html_e( 'Employees need WordPress user accounts to take exams. You can register them via the built-in Gravity Forms User Registration add-on (auto-creates accounts on form submission), or manually create user accounts and assign them the Subscriber role.', 'safety-badges-manager' ); ?>
+                            <?php esc_html_e( 'Employees need accounts to take exams. You can register them natively inside the Employees tab. There you can instantly attach their Iqama Number and Contracting Company to their profile.', 'safety-badges-manager' ); ?>
                         </p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <a href="<?php echo esc_url( admin_url( 'user-new.php' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Add New User', 'safety-badges-manager' ); ?></a>
-                            <a href="<?php echo esc_url( admin_url( 'users.php' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View All Users', 'safety-badges-manager' ); ?></a>
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees&action=add' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Add New Employee', 'safety-badges-manager' ); ?></a>
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View All Employees', 'safety-badges-manager' ); ?></a>
                         </div>
                     </div>
                 </div>
