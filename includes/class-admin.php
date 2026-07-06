@@ -593,56 +593,6 @@ class SBM_Admin {
                 </div>
             </div>
 
-            <!-- Charts Container -->
-            <div class="sbm-grid sbm-charts-grid" style="margin-top: 25px;">
-                <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Exam Attempts Pass/Fail Ratio', 'safety-badges-manager' ); ?></h3>
-                    <div class="chart-container">
-                        <canvas id="sbmReportsDoughnutChart"></canvas>
-                    </div>
-                </div>
-                <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Attempts & Pass Trends', 'safety-badges-manager' ); ?></h3>
-                    <div class="chart-container">
-                        <canvas id="sbmReportsTrendsChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sbm-grid sbm-charts-grid">
-                <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Average Score by Exam', 'safety-badges-manager' ); ?></h3>
-                    <div class="chart-container">
-                        <canvas id="sbmReportsScoresChart"></canvas>
-                    </div>
-                </div>
-                <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Company Compliance Breakdown', 'safety-badges-manager' ); ?></h3>
-                    <div class="chart-container">
-                        <canvas id="sbmReportsCompanyChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <script type="text/javascript">
-                var sbmReportsChartData = {
-                    doughnut: {
-                        passed: <?php echo intval( $passed_attempts ); ?>,
-                        failed: <?php echo intval( $failed_attempts ); ?>
-                    },
-                    trends: {
-                        labels: <?php echo wp_json_encode( $trend_labels ); ?>,
-                        appeared: <?php echo wp_json_encode( $trend_appeared ); ?>,
-                        passed: <?php echo wp_json_encode( $trend_passed ); ?>
-                    },
-                    quizScores: {
-                        labels: <?php echo wp_json_encode( $quiz_labels ); ?>,
-                        averages: <?php echo wp_json_encode( $quiz_averages ); ?>
-                    },
-                    companyCompliance: <?php echo wp_json_encode( $company_compliance ); ?>
-                };
-            </script>
-
             <!-- Detailed Individual Attempts Table -->
             <div class="sbm-card" style="margin-top: 25px;">
                 <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
@@ -734,6 +684,56 @@ class SBM_Admin {
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
+
+            <!-- Charts Container -->
+            <div class="sbm-grid sbm-charts-grid" style="margin-top: 25px;">
+                <div class="sbm-card chart-card">
+                    <h3><?php esc_html_e( 'Exam Attempts Pass/Fail Ratio', 'safety-badges-manager' ); ?></h3>
+                    <div class="chart-container">
+                        <canvas id="sbmReportsDoughnutChart"></canvas>
+                    </div>
+                </div>
+                <div class="sbm-card chart-card">
+                    <h3><?php esc_html_e( 'Attempts & Pass Trends', 'safety-badges-manager' ); ?></h3>
+                    <div class="chart-container">
+                        <canvas id="sbmReportsTrendsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sbm-grid sbm-charts-grid">
+                <div class="sbm-card chart-card">
+                    <h3><?php esc_html_e( 'Average Score by Exam', 'safety-badges-manager' ); ?></h3>
+                    <div class="chart-container">
+                        <canvas id="sbmReportsScoresChart"></canvas>
+                    </div>
+                </div>
+                <div class="sbm-card chart-card">
+                    <h3><?php esc_html_e( 'Company Compliance Breakdown', 'safety-badges-manager' ); ?></h3>
+                    <div class="chart-container">
+                        <canvas id="sbmReportsCompanyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <script type="text/javascript">
+                var sbmReportsChartData = {
+                    doughnut: {
+                        passed: <?php echo intval( $passed_attempts ); ?>,
+                        failed: <?php echo intval( $failed_attempts ); ?>
+                    },
+                    trends: {
+                        labels: <?php echo wp_json_encode( $trend_labels ); ?>,
+                        appeared: <?php echo wp_json_encode( $trend_appeared ); ?>,
+                        passed: <?php echo wp_json_encode( $trend_passed ); ?>
+                    },
+                    quizScores: {
+                        labels: <?php echo wp_json_encode( $quiz_labels ); ?>,
+                        averages: <?php echo wp_json_encode( $quiz_averages ); ?>
+                    },
+                    companyCompliance: <?php echo wp_json_encode( $company_compliance ); ?>
+                };
+            </script>
         </div>
         <?php
     }
