@@ -39,6 +39,9 @@ class SBM_Admin {
         add_action( 'admin_post_sbm_update_status', array( $this, 'handle_manual_status_update' ) );
         add_action( 'admin_post_sbm_update_employee_settings', array( $this, 'handle_employee_settings_update' ) );
 
+        // Register Global Settings Search AJAX handler
+        add_action( 'wp_ajax_sbm_global_search', array( $this, 'handle_global_search' ) );
+
         // Restrict admin dashboard access for non-admin users (subscribers/employees)
         add_action( 'admin_init', array( $this, 'restrict_admin_access' ) );
 
@@ -74,6 +77,15 @@ class SBM_Admin {
 
         add_submenu_page(
             'safety-training',
+            esc_html__( 'Get Started', 'safety-badges-manager' ),
+            esc_html__( 'Get Started', 'safety-badges-manager' ),
+            'manage_safety_training',
+            'safety-get-started',
+            array( $this, 'render_get_started_page' )
+        );
+
+        add_submenu_page(
+            'safety-training',
             esc_html__( 'Employees', 'safety-badges-manager' ),
             esc_html__( 'Employees', 'safety-badges-manager' ),
             'manage_safety_training',
@@ -105,7 +117,11 @@ class SBM_Admin {
      */
     public function enqueue_admin_assets( $hook ) {
         // Enqueue only on our plugin pages
-        if ( strpos( $hook, 'safety-training' ) === false && strpos( $hook, 'safety-employees' ) === false && strpos( $hook, 'safety-reports' ) === false && strpos( $hook, 'safety-settings' ) === false ) {
+        if ( strpos( $hook, 'safety-training' ) === false 
+            && strpos( $hook, 'safety-employees' ) === false 
+            && strpos( $hook, 'safety-reports' ) === false 
+            && strpos( $hook, 'safety-settings' ) === false
+            && strpos( $hook, 'safety-get-started' ) === false ) {
             return;
         }
 
@@ -117,6 +133,12 @@ class SBM_Admin {
         
         // Enqueue admin JS
         wp_enqueue_script( 'sbm-admin-js', SBM_URL . 'assets/admin-script.js', array( 'jquery', 'chartjs' ), SBM_VERSION, true );
+
+        // Localize AJAX parameters for search
+        wp_localize_script( 'sbm-admin-js', 'sbmAjax', array(
+            'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+            'searchNonce' => wp_create_nonce( 'sbm_global_search_nonce' ),
+        ) );
     }
 
     /**
@@ -1041,6 +1063,17 @@ class SBM_Admin {
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Safety Badges Settings', 'safety-badges-manager' ); ?></h1>
             <hr class="wp-header-end">
 
+            <!-- Global Search Card -->
+            <div class="sbm-card sbm-global-search-card" style="max-width: 800px; margin-top: 20px; margin-bottom: 25px;">
+                <h3><?php esc_html_e( 'Global Search', 'safety-badges-manager' ); ?></h3>
+                <p class="description"><?php esc_html_e( 'Search across employees, badges, exam entries, and forms. Type at least 3 characters.', 'safety-badges-manager' ); ?></p>
+                <div class="sbm-search-wrapper" style="position: relative;">
+                    <input type="text" id="sbm-global-search" class="regular-text" style="width: 100%; box-sizing: border-box;" placeholder="<?php esc_attr_e( 'Search by name, email, IQAMA, badge number, form title...', 'safety-badges-manager' ); ?>" autocomplete="off" />
+                    <div id="sbm-search-spinner" class="spinner" style="float: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: none;"></div>
+                    <div id="sbm-search-results" class="sbm-search-dropdown"></div>
+                </div>
+            </div>
+
             <div class="sbm-card" style="max-width: 800px; margin-top: 20px;">
                 <h3 style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; font-size: 18px; color: #0f172a;">
                     <?php esc_html_e( 'Global Printing Configuration', 'safety-badges-manager' ); ?>
@@ -1337,6 +1370,521 @@ class SBM_Admin {
     /**
      * Disable admin bar for non-admins (subscribers/employees).
      */
+    public function hide_admin_bar_for_subscribers( $show ) {
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
+            return false;
+        }
+        return $show;
+    }
+
+    /**
+     * Render the onboarding/reference page.
+     */
+    public function render_get_started_page() {
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
+            wp_die( esc_html__( 'Unauthorized user.', 'safety-badges-manager' ) );
+        }
+
+        // Check Gravity Forms active status
+        $gf_active = class_exists( 'GFCommon' );
+        $quiz_active = class_exists( 'GFQuiz' );
+
+        // Get SBM enabled forms
+        $safety_forms = array();
+        if ( class_exists( 'GFAPI' ) ) {
+            $forms = GFAPI::get_forms();
+            foreach ( $forms as $f ) {
+                if ( rgar( $f, 'sbm_enabled' ) ) {
+                    $safety_forms[] = $f;
+                }
+            }
+        }
+
+        // Get logo data URI if it exists
+        $logo_path_png  = SBM_PATH . 'assets/schem-logo.png';
+        $logo_path_jpg  = SBM_PATH . 'assets/schem-logo.jpg';
+        $logo_path_jpeg = SBM_PATH . 'assets/schem-logo.jpeg';
+        $logo_img_src   = '';
+        $logo_file = '';
+        $logo_mime = 'image/png';
+        if ( file_exists( $logo_path_png ) ) {
+            $logo_file = $logo_path_png;
+            $logo_mime = 'image/png';
+        } elseif ( file_exists( $logo_path_jpg ) ) {
+            $logo_file = $logo_path_jpg;
+            $logo_mime = 'image/jpeg';
+        } elseif ( file_exists( $logo_path_jpeg ) ) {
+            $logo_file = $logo_path_jpeg;
+            $logo_mime = 'image/jpeg';
+        }
+        if ( ! empty( $logo_file ) ) {
+            $logo_data = file_get_contents( $logo_file );
+            if ( $logo_data !== false ) {
+                $logo_img_src = 'data:' . $logo_mime . ';base64,' . base64_encode( $logo_data );
+            }
+        }
+
+        ?>
+        <div class="wrap sbm-get-started-wrap" style="max-width: 1000px; margin: 20px auto;">
+            
+            <!-- Page Header -->
+            <div class="sbm-card" style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px;">
+                <?php if ( ! empty( $logo_img_src ) ) : ?>
+                    <img src="<?php echo esc_url( $logo_img_src ); ?>" alt="Branding Logo" style="max-height: 60px; width: auto;" />
+                <?php endif; ?>
+                <div>
+                    <h1 style="margin: 0 0 5px 0; font-size: 24px; font-weight: 700; color: #0f172a;"><?php esc_html_e( 'Welcome to Safety Badges Manager', 'safety-badges-manager' ); ?></h1>
+                    <p style="margin: 0; font-size: 15px; color: #64748b;"><?php esc_html_e( 'Follow the steps below to set up and manage your safety training compliance system.', 'safety-badges-manager' ); ?></p>
+                </div>
+            </div>
+
+            <!-- Step Cards -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                
+                <!-- Step 1 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">1</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;">
+                            <?php esc_html_e( 'Install & Activate Gravity Forms', 'safety-badges-manager' ); ?>
+                            <?php if ( $gf_active ) : ?>
+                                <span class="sbm-step-status" style="color: #10b981; margin-left: 10px; font-size: 16px;">&#10004;</span>
+                            <?php else : ?>
+                                <span class="sbm-step-status" style="color: #f59e0b; margin-left: 10px; font-size: 16px;">&#9888;</span>
+                            <?php endif; ?>
+                        </h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'This plugin requires Gravity Forms with the Quiz add-on. Gravity Forms handles the exam/quiz creation while Safety Badges Manager extends it to issue certificates and track compliance.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <a href="<?php echo esc_url( admin_url( 'plugins.php' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Manage Plugins', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">2</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Create a Safety Exam (Gravity Form)', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'Create a new Gravity Form and add Quiz fields for your safety questions. Each form represents one exam/training module. Use the Quiz add-on field types to build your question bank.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_new_form' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Create New Form', 'safety-badges-manager' ); ?></a>
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View All Forms', 'safety-badges-manager' ); ?></a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">3</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Enable Safety Badges on the Form', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'Open the form in the Gravity Forms editor, go to Settings → Safety Badges tab. Enable badge generation, set the pass percentage, validity period (e.g. 365 days), and optionally enable question randomization.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <div style="margin-bottom: 15px;">
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Go to Forms → Settings → Safety Badges', 'safety-badges-manager' ); ?></a>
+                        </div>
+                        <?php if ( ! empty( $safety_forms ) ) : ?>
+                            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-top: 10px;">
+                                <h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase;"><?php esc_html_e( 'Currently Enabled Forms:', 'safety-badges-manager' ); ?></h4>
+                                <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
+                                    <?php foreach ( $safety_forms as $form ) : ?>
+                                        <li style="margin-bottom: 5px;">
+                                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=safety_badges&id=' . $form['id'] ) ); ?>" style="font-weight: 600; text-decoration: none;">
+                                                <?php echo esc_html( $form['title'] ); ?>
+                                            </a>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">4</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Configure Global Settings', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'Set up global printing preferences including badge PDF page size (A4/Letter), orientation (Portrait/Landscape), and whether employees can download their own badges from the portal.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-settings' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Open Settings', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">5</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Customize Branding (White Label)', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'Upload your company logo and customize the look of your safety badges, PDF certificates, and email notifications. This ensures all printed badges carry your organization\'s branding.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-settings' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Open White Label Settings', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </div>
+
+                <!-- Step 6 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">6</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Register Employees / User Accounts', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'Employees need WordPress user accounts to take exams. You can register them via the built-in Gravity Forms User Registration add-on (auto-creates accounts on form submission), or manually create user accounts and assign them the Subscriber role.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <a href="<?php echo esc_url( admin_url( 'user-new.php' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Add New User', 'safety-badges-manager' ); ?></a>
+                            <a href="<?php echo esc_url( admin_url( 'users.php' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View All Users', 'safety-badges-manager' ); ?></a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 7 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">7</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Employees Take the Exam', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'Share the exam page URL with employees. When a logged-in employee completes the quiz and scores above the pass threshold, a safety badge is automatically generated with a unique badge number and calculated expiry date. Previous active badges for the same exam are automatically superseded.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <?php if ( ! empty( $safety_forms ) ) : ?>
+                            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-top: 10px;">
+                                <h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase;"><?php esc_html_e( 'Exam Page URLs / Previews:', 'safety-badges-manager' ); ?></h4>
+                                <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
+                                    <?php foreach ( $safety_forms as $form ) :
+                                        $preview_url = admin_url( 'admin.php?page=gf_entries&view=preview&id=' . $form['id'] );
+                                        $front_url   = '';
+                                        global $wpdb;
+                                        $post_id = $wpdb->get_var( $wpdb->prepare(
+                                            "SELECT ID FROM $wpdb->posts WHERE post_status = 'publish' AND post_type = 'page' AND post_content LIKE %s LIMIT 1",
+                                            '%' . $wpdb->esc_like( '[gravityform id="' . $form['id'] . '"' ) . '%'
+                                        ) );
+                                        if ( $post_id ) {
+                                            $front_url = get_permalink( $post_id );
+                                        } else {
+                                            $post_id = $wpdb->get_var( $wpdb->prepare(
+                                                "SELECT ID FROM $wpdb->posts WHERE post_status = 'publish' AND post_type = 'page' AND post_content LIKE %s LIMIT 1",
+                                                '%"formId":' . intval( $form['id'] ) . '%'
+                                            ) );
+                                            if ( $post_id ) {
+                                                $front_url = get_permalink( $post_id );
+                                            }
+                                        }
+                                        $display_url = ! empty( $front_url ) ? $front_url : $preview_url;
+                                        $url_label   = ! empty( $front_url ) ? esc_html__( 'View Published Page', 'safety-badges-manager' ) : esc_html__( 'Preview Exam', 'safety-badges-manager' );
+                                        ?>
+                                        <li style="margin-bottom: 8px;">
+                                            <strong style="color: #0f172a;"><?php echo esc_html( $form['title'] ); ?>:</strong>
+                                            <a href="<?php echo esc_url( $display_url ); ?>" target="_blank" style="margin-left: 8px; text-decoration: none; font-size: 13px; font-weight: 600;">
+                                                <?php echo esc_html( $url_label ); ?> &rarr;
+                                            </a>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Step 8 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">8</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Monitor Compliance on the Dashboard', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'The Dashboard shows real-time compliance metrics including active badges, pass/fail trends over 6 months, and a badge expiry forecast. Use this as your command center for safety training oversight.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-training' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Open Dashboard', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </div>
+
+                <!-- Step 9 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">9</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Manage Employee Records', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'The Employees page shows every registered employee with their latest badge status. Filter by company, exam, date range, or IQAMA number. Click any employee to see their full profile including badge history timeline and exam attempt history. You can revoke, re-activate badges, assign exams, and authorize retakes.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View Employees', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </div>
+
+                <!-- Step 10 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">10</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Generate & Print Badge PDFs', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'Print individual badges from an employee\'s profile, or select multiple employees on the Employees list and use the "Print Selected Badges (PDF)" bulk action. Badges are generated as PDF sheets using Dompdf with your configured page size and branding.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Go to Employees → Select & Print', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </div>
+
+                <!-- Step 11 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">11</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Run Reports & Export Data', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'The Reports page provides detailed analytics: KPI cards (total attempts, candidates passed/failed, pass rate, average score), monthly trend charts, average score by exam, and company compliance breakdown. Filter by company, exam, date range, or IQAMA. Export filtered data as CSV for external analysis.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-reports' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Open Reports', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </div>
+
+                <!-- Step 12 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">12</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Automated Expiry & Notifications', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'The plugin runs automated cron jobs to check badge expiry dates. When a badge is approaching expiration (configurable per-form, default 30 days), reminder emails are automatically sent to the employee. Expired badges are marked with "expired" status. No manual intervention required.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-settings' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Review Notification Settings', 'safety-badges-manager' ); ?></a>
+                    </div>
+                </div>
+
+                <!-- Step 13 -->
+                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">13</div>
+                    <div class="sbm-step-content" style="flex-grow: 1;">
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Verify Badges (Public Verification)', 'safety-badges-manager' ); ?></h3>
+                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                            <?php esc_html_e( 'Each badge has a unique badge number that can be publicly verified. Share the verification URL with third parties (auditors, clients) to confirm an employee\'s certification status, expiry date, and authenticity without needing admin access.', 'safety-badges-manager' ); ?>
+                        </p>
+                        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 13px; color: #475569;">
+                            <?php echo esc_html( site_url( '/verify-badge/?code=BADGE_NUMBER' ) ); ?>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Quick Links Shortcut Cards -->
+            <div class="sbm-card" style="margin-top: 25px;">
+                <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;"><?php esc_html_e( 'Quick Shortcuts', 'safety-badges-manager' ); ?></h3>
+                <div class="sbm-quick-links-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-training' ) ); ?>" class="sbm-search-result-item" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #0f172a; transition: background 0.15s ease;">
+                        <span class="dashicons dashicons-dashboard" style="font-size: 32px; width: 32px; height: 32px; color: #64748b; margin-bottom: 10px;"></span>
+                        <span style="font-weight: 600; font-size: 15px; margin-bottom: 5px;"><?php esc_html_e( 'Dashboard', 'safety-badges-manager' ); ?></span>
+                        <span style="font-size: 12px; color: #64748b;"><?php esc_html_e( 'View real-time compliance metrics', 'safety-badges-manager' ); ?></span>
+                    </a>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees' ) ); ?>" class="sbm-search-result-item" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #0f172a; transition: background 0.15s ease;">
+                        <span class="dashicons dashicons-admin-users" style="font-size: 32px; width: 32px; height: 32px; color: #64748b; margin-bottom: 10px;"></span>
+                        <span style="font-weight: 600; font-size: 15px; margin-bottom: 5px;"><?php esc_html_e( 'Employees', 'safety-badges-manager' ); ?></span>
+                        <span style="font-size: 12px; color: #64748b;"><?php esc_html_e( 'Manage profiles & print certificates', 'safety-badges-manager' ); ?></span>
+                    </a>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-reports' ) ); ?>" class="sbm-search-result-item" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #0f172a; transition: background 0.15s ease;">
+                        <span class="dashicons dashicons-media-text" style="font-size: 32px; width: 32px; height: 32px; color: #64748b; margin-bottom: 10px;"></span>
+                        <span style="font-weight: 600; font-size: 15px; margin-bottom: 5px;"><?php esc_html_e( 'Reports', 'safety-badges-manager' ); ?></span>
+                        <span style="font-size: 12px; color: #64748b;"><?php esc_html_e( 'Analytical insights & CSV exports', 'safety-badges-manager' ); ?></span>
+                    </a>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-settings' ) ); ?>" class="sbm-search-result-item" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #0f172a; transition: background 0.15s ease;">
+                        <span class="dashicons dashicons-admin-generic" style="font-size: 32px; width: 32px; height: 32px; color: #64748b; margin-bottom: 10px;"></span>
+                        <span style="font-weight: 600; font-size: 15px; margin-bottom: 5px;"><?php esc_html_e( 'Settings', 'safety-badges-manager' ); ?></span>
+                        <span style="font-size: 12px; color: #64748b;"><?php esc_html_e( 'Configure rules & branding', 'safety-badges-manager' ); ?></span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Support / Info Footer -->
+            <div style="text-align: center; margin-top: 30px; font-size: 13px; color: #64748b;">
+                <p>
+                    <?php echo sprintf( esc_html__( 'Safety Badges Manager v%s', 'safety-badges-manager' ), SBM_VERSION ); ?>
+                    |
+                    <a href="https://standardtouch.com" target="_blank" style="text-decoration: none; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'StandardTouch', 'safety-badges-manager' ); ?></a>
+                </p>
+            </div>
+
+        </div>
+        <?php
+    }
+
+    /**
+     * Handle global search input via AJAX.
+     */
+    public function handle_global_search() {
+        // Verify nonce
+        check_ajax_referer( 'sbm_global_search_nonce', 'nonce' );
+
+        // Check capability
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
+            wp_send_json_error( esc_html__( 'Unauthorized user.', 'safety-badges-manager' ) );
+        }
+
+        $query = isset( $_GET['q'] ) ? sanitize_text_field( $_GET['q'] ) : '';
+        if ( strlen( $query ) < 3 ) {
+            wp_send_json_success( array(
+                'employees' => array(),
+                'badges'    => array(),
+                'entries'   => array(),
+                'forms'     => array(),
+            ) );
+        }
+
+        global $wpdb;
+        $like_query = '%' . $wpdb->esc_like( $query ) . '%';
+
+        // 1. Query Employees (Users who are not administrators)
+        $employees_results = $wpdb->get_results( $wpdb->prepare( "
+            SELECT DISTINCT 
+                u.ID as id,
+                u.display_name,
+                u.user_email as email,
+                um_iqama.meta_value as iqama,
+                um_company.meta_value as company
+            FROM {$wpdb->users} u
+            LEFT JOIN {$wpdb->usermeta} um_capabilities ON u.ID = um_capabilities.user_id AND um_capabilities.meta_key = '{$wpdb->prefix}capabilities'
+            LEFT JOIN {$wpdb->usermeta} um_iqama ON u.ID = um_iqama.user_id AND um_iqama.meta_key = 'sbm_iqama'
+            LEFT JOIN {$wpdb->usermeta} um_company ON u.ID = um_company.user_id AND um_company.meta_key = 'sbm_company'
+            WHERE 
+                (um_capabilities.meta_value NOT LIKE '%administrator%')
+                AND (
+                    u.display_name LIKE %s 
+                    OR u.user_email LIKE %s 
+                    OR u.user_login LIKE %s 
+                    OR um_iqama.meta_value LIKE %s
+                )
+            LIMIT 5
+        ", $like_query, $like_query, $like_query, $like_query ) );
+
+        $employees = array();
+        foreach ( $employees_results as $emp ) {
+            $user_id = intval( $emp->id );
+            $name = SBM()->gravity_forms->heal_user_display_name( $user_id );
+            $employees[] = array(
+                'id'      => $user_id,
+                'name'    => ! empty( $name ) ? $name : $emp->display_name,
+                'email'   => $emp->email,
+                'iqama'   => ! empty( $emp->iqama ) ? $emp->iqama : '',
+                'company' => ! empty( $emp->company ) ? $emp->company : 'S-Chem',
+                'url'     => admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $user_id ),
+            );
+        }
+
+        // 2. Query Badges
+        $badges_table = $wpdb->prefix . 'safety_badges';
+        $badges_results = $wpdb->get_results( $wpdb->prepare( "
+            SELECT 
+                b.id,
+                b.badge_number,
+                b.status,
+                b.pass_date,
+                b.expiry_date,
+                b.user_id
+            FROM {$badges_table} b
+            WHERE b.badge_number LIKE %s
+            LIMIT 5
+        ", $like_query ) );
+
+        $badges = array();
+        foreach ( $badges_results as $badge ) {
+            $user_id = intval( $badge->user_id );
+            $user_name = SBM()->gravity_forms->heal_user_display_name( $user_id );
+            $badges[] = array(
+                'id'           => intval( $badge->id ),
+                'badge_number' => $badge->badge_number,
+                'status'       => $badge->status,
+                'pass_date'    => date( 'Y-m-d', strtotime( $badge->pass_date ) ),
+                'expiry_date'  => date( 'Y-m-d', strtotime( $badge->expiry_date ) ),
+                'user_name'    => $user_name,
+                'url'          => admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $user_id ),
+            );
+        }
+
+        // 3. Query Gravity Forms Entries for SBM Enabled Forms
+        $entries = array();
+        $enabled_form_ids = SBM()->db->get_enabled_form_ids();
+        if ( ! empty( $enabled_form_ids ) ) {
+            $gf_entry_table = $wpdb->prefix . 'gf_entry';
+            $form_placeholders = implode( ',', array_map( 'intval', $enabled_form_ids ) );
+            
+            $entries_results = $wpdb->get_results( $wpdb->prepare( "
+                SELECT DISTINCT 
+                    e.id as entry_id,
+                    e.form_id,
+                    e.date_created,
+                    e.created_by as user_id,
+                    u.display_name,
+                    u.user_email,
+                    u.user_login
+                FROM {$gf_entry_table} e
+                INNER JOIN {$wpdb->users} u ON e.created_by = u.ID
+                WHERE e.form_id IN ($form_placeholders)
+                AND (
+                    u.display_name LIKE %s 
+                    OR u.user_email LIKE %s 
+                    OR u.user_login LIKE %s
+                )
+                ORDER BY e.date_created DESC
+                LIMIT 5
+            ", $like_query, $like_query, $like_query ) );
+
+            foreach ( $entries_results as $ent ) {
+                $f_id = intval( $ent->form_id );
+                $e_id = intval( $ent->entry_id );
+                $u_id = intval( $ent->user_id );
+                
+                $form_title = 'Form #' . $f_id;
+                if ( class_exists( 'GFAPI' ) ) {
+                    $form_info = GFAPI::get_form( $f_id );
+                    if ( $form_info ) {
+                        $form_title = $form_info['title'];
+                    }
+                }
+                
+                $score = gform_get_meta( $e_id, 'gquiz_percent' );
+                $is_pass = gform_get_meta( $e_id, 'gquiz_is_pass' );
+                $user_name = SBM()->gravity_forms->heal_user_display_name( $u_id );
+
+                $entries[] = array(
+                    'entry_id'   => $e_id,
+                    'form_id'    => $f_id,
+                    'form_title' => $form_title,
+                    'user_name'  => $user_name,
+                    'date'       => date( 'Y-m-d', strtotime( $ent->date_created ) ),
+                    'score'      => $score !== '' ? floatval( $score ) . '%' : '-',
+                    'result'     => $is_pass == '1' ? 'Passed' : 'Failed',
+                    'url'        => admin_url( 'admin.php?page=gf_entries&view=entry&id=' . $f_id . '&lid=' . $e_id ),
+                );
+            }
+        }
+
+        // 4. Query SBM Enabled Forms
+        $forms = array();
+        if ( class_exists( 'GFAPI' ) ) {
+            $all_forms = GFAPI::get_forms();
+            $count = 0;
+            foreach ( $all_forms as $form ) {
+                if ( $count >= 5 ) {
+                    break;
+                }
+                if ( rgar( $form, 'sbm_enabled' ) && stripos( $form['title'], $query ) !== false ) {
+                    $forms[] = array(
+                        'id'            => intval( $form['id'] ),
+                        'title'         => $form['title'],
+                        'pass_percent'  => intval( rgar( $form, 'sbm_pass_percent', 80 ) ),
+                        'validity_days' => intval( rgar( $form, 'sbm_validity_period', 365 ) ),
+                        'url'           => admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=safety_badges&id=' . $form['id'] ),
+                    );
+                    $count++;
+                }
+            }
+        }
+
+        wp_send_json_success( array(
+            'employees' => $employees,
+            'badges'    => $badges,
+            'entries'   => $entries,
+            'forms'     => $forms,
+        ) );
+    }
+
     public function hide_admin_bar_for_subscribers( $show ) {
         if ( ! current_user_can( 'manage_safety_training' ) ) {
             return false;

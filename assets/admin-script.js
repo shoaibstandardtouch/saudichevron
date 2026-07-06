@@ -349,3 +349,166 @@ jQuery(document).ready(function($) {
         }
     }
 });
+
+/**
+ * Global Search AJAX Handler
+ */
+jQuery(document).ready(function($) {
+    var searchInput = $('#sbm-global-search');
+    var resultsDropdown = $('#sbm-search-results');
+    var spinner = $('#sbm-search-spinner');
+    var searchTimeout = null;
+
+    if (searchInput.length === 0) {
+        return;
+    }
+
+    searchInput.on('input keyup', function() {
+        var query = $(this).val().trim();
+
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+
+        if (query.length < 3) {
+            resultsDropdown.removeClass('active').html('');
+            spinner.hide();
+            return;
+        }
+
+        spinner.show();
+
+        searchTimeout = setTimeout(function() {
+            $.ajax({
+                url: sbmAjax.ajaxUrl,
+                type: 'GET',
+                dataType: 'json',
+                data: {
+                    action: 'sbm_global_search',
+                    nonce: sbmAjax.searchNonce,
+                    q: query
+                },
+                success: function(response) {
+                    spinner.hide();
+                    if (response.success) {
+                        renderResults(response.data, query);
+                    } else {
+                        resultsDropdown.addClass('active').html('<div class="sbm-search-no-results">Error performing search</div>');
+                    }
+                },
+                error: function() {
+                    spinner.hide();
+                    resultsDropdown.addClass('active').html('<div class="sbm-search-no-results">Error performing search</div>');
+                }
+            });
+        }, 400);
+    });
+
+    // Close dropdown when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.sbm-search-wrapper').length) {
+            resultsDropdown.removeClass('active');
+        }
+    });
+
+    // Re-open if input is clicked and has query
+    searchInput.on('click', function() {
+        if ($(this).val().trim().length >= 3 && resultsDropdown.children().length > 0) {
+            resultsDropdown.addClass('active');
+        }
+    });
+
+    function renderResults(data, query) {
+        var html = '';
+        var hasResults = false;
+
+        // Helper to escape HTML tags
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // 1. Employees
+        if (data.employees && data.employees.length > 0) {
+            hasResults = true;
+            html += '<div class="sbm-search-group">';
+            html += '<div class="sbm-search-group-title">Employees</div>';
+            data.employees.forEach(function(item) {
+                var secondary = item.email;
+                if (item.iqama) {
+                    secondary += ' &middot; IQAMA: ' + item.iqama;
+                }
+                if (item.company) {
+                    secondary += ' &middot; ' + item.company;
+                }
+                html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
+                html += '<span class="dashicons dashicons-admin-users"></span>';
+                html += '<div class="sbm-search-result-text">';
+                html += '<span class="sbm-search-primary">' + escapeHtml(item.name) + '</span>';
+                html += '<span class="sbm-search-secondary">' + secondary + '</span>';
+                html += '</div></a>';
+            });
+            html += '</div>';
+        }
+
+        // 2. Badges
+        if (data.badges && data.badges.length > 0) {
+            hasResults = true;
+            html += '<div class="sbm-search-group">';
+            html += '<div class="sbm-search-group-title">Badges</div>';
+            data.badges.forEach(function(item) {
+                var secondary = 'Status: ' + item.status.toUpperCase() + ' &middot; Certified: ' + item.pass_date + ' &middot; Expires: ' + item.expiry_date;
+                if (item.user_name) {
+                    secondary = escapeHtml(item.user_name) + ' &middot; ' + secondary;
+                }
+                html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
+                html += '<span class="dashicons dashicons-awards"></span>';
+                html += '<div class="sbm-search-result-text">';
+                html += '<span class="sbm-search-primary">' + escapeHtml(item.badge_number) + '</span>';
+                html += '<span class="sbm-search-secondary">' + secondary + '</span>';
+                html += '</div></a>';
+            });
+            html += '</div>';
+        }
+
+        // 3. Entries
+        if (data.entries && data.entries.length > 0) {
+            hasResults = true;
+            html += '<div class="sbm-search-group">';
+            html += '<div class="sbm-search-group-title">Entries</div>';
+            data.entries.forEach(function(item) {
+                var secondary = escapeHtml(item.user_name) + ' &middot; ' + item.date + ' &middot; Score: ' + item.score + ' &middot; ' + item.result;
+                html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
+                html += '<span class="dashicons dashicons-media-text"></span>';
+                html += '<div class="sbm-search-result-text">';
+                html += '<span class="sbm-search-primary">Entry #' + item.entry_id + ' &middot; ' + escapeHtml(item.form_title) + '</span>';
+                html += '<span class="sbm-search-secondary">' + secondary + '</span>';
+                html += '</div></a>';
+            });
+            html += '</div>';
+        }
+
+        // 4. Forms
+        if (data.forms && data.forms.length > 0) {
+            hasResults = true;
+            html += '<div class="sbm-search-group">';
+            html += '<div class="sbm-search-group-title">Forms</div>';
+            data.forms.forEach(function(item) {
+                var secondary = 'Pass Threshold: ' + item.pass_percent + '% &middot; Validity: ' + item.validity_days + ' days';
+                html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
+                html += '<span class="dashicons dashicons-welcome-learn-more"></span>';
+                html += '<div class="sbm-search-result-text">';
+                html += '<span class="sbm-search-primary">' + escapeHtml(item.title) + '</span>';
+                html += '<span class="sbm-search-secondary">' + secondary + '</span>';
+                html += '</div></a>';
+            });
+            html += '</div>';
+        }
+
+        if (!hasResults) {
+            html = '<div class="sbm-search-no-results">No results found for \'' + escapeHtml(query) + '\'</div>';
+        }
+
+        resultsDropdown.html(html).addClass('active');
+    }
+});
