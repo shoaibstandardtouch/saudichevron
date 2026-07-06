@@ -1884,13 +1884,6 @@ class SBM_Admin {
             'forms'     => $forms,
         ) );
     }
-
-    public function hide_admin_bar_for_subscribers( $show ) {
-        if ( ! current_user_can( 'manage_safety_training' ) ) {
-            return false;
-        }
-        return $show;
-    }
 }
 
 /**
