@@ -534,12 +534,12 @@ jQuery(document).ready(function($) {
         $resultsDiv.hide();
 
         $.ajax({
-            url: ajaxurl,
+            url: sbmAjax.ajaxUrl,
             type: 'GET',
             data: {
                 action: 'sbm_employee_training_lookup',
                 user_id: userId,
-                nonce: sbmAdmin.globalSearchNonce
+                nonce: sbmAjax.searchNonce
             },
             success: function(response) {
                 $spinner.removeClass('is-active').hide();

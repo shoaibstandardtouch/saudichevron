@@ -223,11 +223,11 @@ class SBM_Admin {
 
             <!-- Charts Grid -->
             <div class="sbm-grid sbm-charts-grid">
-                <!-- Doughnut Chart for Compliance -->
+                <!-- Doughnut Chart for Pass/Fail -->
                 <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Compliance Distribution', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php esc_html_e( 'Pass vs Fail Ratio (This Month)', 'safety-badges-manager' ); ?></h3>
                     <div class="chart-container">
-                        <canvas id="sbmComplianceChart"></canvas>
+                        <canvas id="sbmDashboardPassFailChart"></canvas>
                     </div>
                 </div>
 
@@ -240,56 +240,13 @@ class SBM_Admin {
                 </div>
             </div>
 
-            <div class="sbm-grid sbm-charts-grid-full">
-                <!-- Line Chart for Forecast Expiries -->
-                <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Badge Expiries Forecast (Next 6 Months)', 'safety-badges-manager' ); ?></h3>
-                    <div class="chart-container forecast-chart">
-                        <canvas id="sbmForecastChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Certified Employees -->
-            <div class="sbm-card" style="margin-top: 25px; margin-bottom: 25px;">
-                <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                    <?php esc_html_e( 'Recent Certified Employees', 'safety-badges-manager' ); ?>
-                </h3>
-                <?php if ( empty( $recent_certifications ) ) : ?>
-                    <p class="empty-message"><?php esc_html_e( 'No certifications recorded yet.', 'safety-badges-manager' ); ?></p>
-                <?php else : ?>
-                    <div style="overflow-x: auto;">
-                        <table class="wp-list-table widefat fixed striped" style="border: none; box-shadow: none;">
-                            <thead>
-                                <tr>
-                                    <th style="font-weight: 600;"><?php esc_html_e( 'Employee Name', 'safety-badges-manager' ); ?></th>
-                                    <th style="font-weight: 600;"><?php esc_html_e( 'Iqaama No.', 'safety-badges-manager' ); ?></th>
-                                    <th style="font-weight: 600;"><?php esc_html_e( 'Company', 'safety-badges-manager' ); ?></th>
-                                    <th style="font-weight: 600;"><?php esc_html_e( 'Badge Number', 'safety-badges-manager' ); ?></th>
-                                    <th style="font-weight: 600;"><?php esc_html_e( 'Certified On', 'safety-badges-manager' ); ?></th>
-                                    <th style="font-weight: 600;"><?php esc_html_e( 'Expires On', 'safety-badges-manager' ); ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ( $recent_certifications as $cert ) : ?>
-                                    <tr>
-                                        <td><strong><a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $cert->user_id ) ); ?>"><?php echo esc_html( SBM()->gravity_forms->heal_user_display_name( $cert->user_id ) ); ?></a></strong></td>
-                                        <td><?php echo esc_html( $cert->iqama ); ?></td>
-                                        <td><?php echo esc_html( $cert->company ); ?></td>
-                                        <td><code><?php echo esc_html( $cert->badge_number ); ?></code></td>
-                                        <td><?php echo date_i18n( get_option( 'date_format' ), strtotime( $cert->pass_date ) ); ?></td>
-                                        <td><?php echo date_i18n( get_option( 'date_format' ), strtotime( $cert->expiry_date ) ); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
-            </div>
-
             <!-- Embed Data securely for Chart.js -->
             <script type="text/javascript">
                 var sbmChartData = <?php echo wp_json_encode( $stats ); ?>;
+                var sbmDashboardMonthStats = {
+                    passes: <?php echo intval( $current_month_passes ); ?>,
+                    fails: <?php echo intval( $current_month_fails ); ?>
+                };
             </script>
         </div>
         <?php
@@ -1474,7 +1431,7 @@ class SBM_Admin {
             <!-- Page Header -->
             <div class="sbm-card" style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px;">
                 <?php if ( ! empty( $logo_img_src ) ) : ?>
-                    <img src="<?php echo esc_url( $logo_img_src ); ?>" alt="Branding Logo" style="max-height: 60px; width: auto;" />
+                    <img src="<?php echo esc_attr( $logo_img_src ); ?>" alt="Branding Logo" style="max-height: 60px; width: auto;" />
                 <?php endif; ?>
                 <div>
                     <h1 style="margin: 0 0 5px 0; font-size: 24px; font-weight: 700; color: #0f172a;"><?php esc_html_e( 'Welcome to Safety Badges Manager', 'safety-badges-manager' ); ?></h1>
