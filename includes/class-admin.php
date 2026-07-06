@@ -307,7 +307,7 @@ class SBM_Admin {
         ?>
         <div class="wrap sbm-dashboard-wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Employee Records', 'safety-badges-manager' ); ?></h1>
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees&action=add' ) ); ?>" class="page-title-action"><?php esc_html_e( 'Add New Employee', 'safety-badges-manager' ); ?></a>
+            <a href="<?php echo esc_url( site_url( '/user-registration/' ) ); ?>" target="_blank" class="page-title-action"><?php esc_html_e( 'Add New Employee', 'safety-badges-manager' ); ?></a>
             <hr class="wp-header-end">
 
             <?php if ( isset( $_GET['message'] ) && 'employee_added' === $_GET['message'] ) : ?>
@@ -1628,10 +1628,10 @@ class SBM_Admin {
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Register Employees', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
-                            <?php esc_html_e( 'Employees need accounts to take exams. You can register them natively inside the Employees tab. There you can instantly attach their Iqama Number and Contracting Company to their profile.', 'safety-badges-manager' ); ?>
+                            <?php esc_html_e( 'Employees need accounts to take exams. You can register them via the simplified Employee Registration portal on the frontend, where their Iqama Number and Contracting Company are captured instantly.', 'safety-badges-manager' ); ?>
                         </p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees&action=add' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Add New Employee', 'safety-badges-manager' ); ?></a>
+                            <a href="<?php echo esc_url( site_url( '/user-registration/' ) ); ?>" target="_blank" class="button button-secondary"><?php esc_html_e( 'Add New Employee', 'safety-badges-manager' ); ?></a>
                             <a href="<?php echo esc_url( admin_url( 'admin.php?page=safety-employees' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View All Employees', 'safety-badges-manager' ); ?></a>
                         </div>
                     </div>
