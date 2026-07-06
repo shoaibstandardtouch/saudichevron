@@ -2,6 +2,12 @@
  * Safety Badges Manager Chart.js Initializations
  */
 jQuery(document).ready(function($) {
+    // Helper to escape HTML tags
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
     if (typeof sbmChartData === 'undefined' && typeof sbmReportsChartData === 'undefined') {
         return;
     }
@@ -9,7 +15,7 @@ jQuery(document).ready(function($) {
     // 1. Dashboard Charts (Only if sbmChartData is defined)
     if (typeof sbmChartData !== 'undefined') {
         // 1. Compliance Doughnut Chart
-        var ctxCompliance = document.getElementById('sbmComplianceChart');
+        var ctxCompliance = document.getElementById('sbmDashboardPassFailChart');
         if (ctxCompliance) {
             var currentMonthPasses = 0;
             var currentMonthFails = 0;
@@ -427,12 +433,6 @@ jQuery(document).ready(function($) {
     function renderResults(data, query) {
         var html = '';
         var hasResults = false;
-
-        // Helper to escape HTML tags
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
 
         // 1. Employees
         if (data.employees && data.employees.length > 0) {
