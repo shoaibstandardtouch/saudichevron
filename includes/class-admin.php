@@ -1450,11 +1450,11 @@ class SBM_Admin {
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Create a Safety Exam', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
-                            <?php esc_html_e( 'Create a new Gravity Form and add Quiz fields for your safety questions. Each form represents one exam/training module. Use the Quiz add-on field types to build your question bank.', 'safety-badges-manager' ); ?>
+                            <?php esc_html_e( 'Create a new Exam (powered by Gravity Forms) and add Quiz fields for your safety questions. Each Exam represents one training module. Use the Quiz add-on field types to build your question bank.', 'safety-badges-manager' ); ?>
                         </p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_new_form' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Create New Form', 'safety-badges-manager' ); ?></a>
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View All Forms', 'safety-badges-manager' ); ?></a>
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_new_form' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Create New Exam', 'safety-badges-manager' ); ?></a>
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'View All Exams', 'safety-badges-manager' ); ?></a>
                         </div>
                     </div>
                 </div>
@@ -1463,16 +1463,16 @@ class SBM_Admin {
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
                     <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">2</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
-                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Enable Safety Badges on the Form', 'safety-badges-manager' ); ?></h3>
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Enable Safety Badges on the Exam', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
-                            <?php esc_html_e( 'Open the form in the Gravity Forms editor, go to Settings → Safety Badges tab. Enable badge generation, set the pass percentage, validity period (e.g. 365 days), and optionally enable question randomization.', 'safety-badges-manager' ); ?>
+                            <?php esc_html_e( 'Open the exam in the Gravity Forms editor, go to Settings → Safety Badges tab. Enable badge generation, set the pass percentage, validity period (e.g. 365 days), and optionally enable question randomization.', 'safety-badges-manager' ); ?>
                         </p>
                         <div style="margin-bottom: 15px;">
-                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Go to Forms → Settings → Safety Badges', 'safety-badges-manager' ); ?></a>
+                            <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Go to Exams (Forms) → Settings → Safety Badges', 'safety-badges-manager' ); ?></a>
                         </div>
                         <?php if ( ! empty( $safety_forms ) ) : ?>
                             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-top: 10px;">
-                                <h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase;"><?php esc_html_e( 'Currently Enabled Forms:', 'safety-badges-manager' ); ?></h4>
+                                <h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase;"><?php esc_html_e( 'Currently Enabled Exams:', 'safety-badges-manager' ); ?></h4>
                                 <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
                                     <?php foreach ( $safety_forms as $form ) : ?>
                                         <li style="margin-bottom: 5px;">
