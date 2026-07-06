@@ -324,6 +324,38 @@ class SBM_DB {
     }
 
     /**
+     * Get all training attempts for a specific employee.
+     * Used for Individual Training Record lookup (Fix #10).
+     */
+    public function get_employee_all_trainings( $user_id ) {
+        global $wpdb;
+        $gf_entries_table = $wpdb->prefix . 'gf_entry';
+        $gf_entry_meta_table = $wpdb->prefix . 'gf_entry_meta';
+        
+        $gf_table_exists = $wpdb->get_var( "SHOW TABLES LIKE '$gf_entries_table'" ) === $gf_entries_table;
+        if ( ! $gf_table_exists ) {
+            return array();
+        }
+        
+        $query = $wpdb->prepare( "
+            SELECT 
+                e.id as entry_id,
+                e.form_id,
+                e.date_created,
+                MAX(CASE WHEN em.meta_key = 'gquiz_score' THEN em.meta_value END) as score,
+                MAX(CASE WHEN em.meta_key = 'gquiz_percent' THEN em.meta_value END) as score_percent,
+                MAX(CASE WHEN em.meta_key = 'gquiz_is_pass' THEN em.meta_value END) as is_pass
+            FROM $gf_entries_table e
+            LEFT JOIN $gf_entry_meta_table em ON e.id = em.entry_id
+            WHERE e.status = 'active' AND e.created_by = %d
+            GROUP BY e.id
+            ORDER BY e.date_created DESC
+        ", $user_id );
+        
+        return $wpdb->get_results( $query );
+    }
+
+    /**
      * Get aggregate statistics of badges for Chart.js.
      */
     public function get_dashboard_stats() {

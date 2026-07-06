@@ -33,7 +33,7 @@ class SBM_Gravity_Forms {
         add_action( 'gform_form_settings_page_safety_badges', array( $this, 'render_settings_page' ) );
 
         // Process entry after submission to evaluate quiz results
-        add_action( 'gform_after_submission', array( $this, 'process_submission' ), 10, 2 );
+        add_action( 'gform_after_submission', array( $this, 'process_submission' ), 50, 2 );
 
         // Question Randomization hooks
         add_filter( 'gform_pre_render', array( $this, 'randomize_fields' ) );
@@ -345,10 +345,28 @@ class SBM_Gravity_Forms {
                 $total_questions++;
                 $user_response = rgar( $entry, (string) $field->id );
                 
-                // Gravity Forms Quiz field correct value
-                $correct_value = isset( $field->gquizCorrectValue ) ? $field->gquizCorrectValue : '';
-                
-                if ( ! empty( $correct_value ) && $user_response === $correct_value ) {
+                // Check GF Quiz choices array
+                $is_correct = false;
+                if ( isset( $field->choices ) && is_array( $field->choices ) ) {
+                    foreach ( $field->choices as $choice ) {
+                        if ( ! empty( $choice['isCorrect'] ) || ! empty( $choice['gquizIsCorrect'] ) ) {
+                            if ( (string) $user_response === (string) $choice['value'] || (string) $user_response === (string) $choice['text'] ) {
+                                $is_correct = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Fallback to gquizCorrectValue if choices check failed
+                if ( ! $is_correct ) {
+                    $correct_value = isset( $field->gquizCorrectValue ) ? $field->gquizCorrectValue : '';
+                    if ( ! empty( $correct_value ) && (string) $user_response === (string) $correct_value ) {
+                        $is_correct = true;
+                    }
+                }
+
+                if ( $is_correct ) {
                     $correct_answers++;
                 }
             }
@@ -1160,7 +1178,12 @@ class SBM_Gravity_Forms {
     }
 
     public function intercept_homepage() {
-        if ( is_front_page() ) {
+        // Don't interfere with admin, AJAX, REST API, or cron
+        if ( is_admin() || wp_doing_ajax() || wp_doing_cron() || defined( 'REST_REQUEST' ) ) {
+            return;
+        }
+
+        if ( is_front_page() || is_home() ) {
             if ( current_user_can( 'manage_safety_training' ) ) {
                 wp_safe_redirect( admin_url( 'admin.php?page=safety-training' ) );
                 exit;
@@ -1224,6 +1247,7 @@ class SBM_Gravity_Forms {
 
         // 1. GUEST USER: Render Split Landing / Login Page
         if ( ! is_user_logged_in() ) {
+            nocache_headers();
             ?>
             <!DOCTYPE html>
             <html <?php language_attributes(); ?>>
@@ -1298,6 +1322,7 @@ class SBM_Gravity_Forms {
         }
 
         // LOGGED-IN USERS
+        nocache_headers();
         $user_id = get_current_user_id();
         $user    = wp_get_current_user();
         $iqama   = get_user_meta( $user_id, 'sbm_iqama', true );
@@ -1378,8 +1403,8 @@ class SBM_Gravity_Forms {
             $forms = GFAPI::get_forms();
             foreach ( $forms as $f ) {
                 if ( rgar( $f, 'is_active' ) && rgar( $f, 'sbm_enabled' ) ) {
-                    // Filter by assigned exams if defined
-                    if ( ! empty( $assigned_exams ) && ! in_array( intval( $f['id'] ), $assigned_exams, true ) ) {
+                    // Only show explicitly assigned exams. If none assigned, show nothing.
+                    if ( ! in_array( intval( $f['id'] ), $assigned_exams, true ) ) {
                         continue;
                     }
                     $active_quizzes[] = $f;
@@ -1534,20 +1559,12 @@ class SBM_Gravity_Forms {
                                                 <div>
                                                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
                                                         <h4 style="margin: 0;"><?php echo esc_html( $quiz['title'] ); ?></h4>
-                                                        <?php if ( $has_passed ) : ?>
-                                                            <span class="sbm-status-tag pass" style="flex-shrink: 0; margin-top: -2px;">Passed</span>
-                                                        <?php elseif ( $has_attempted ) : ?>
-                                                            <span class="sbm-status-tag fail" style="flex-shrink: 0; margin-top: -2px;">Failed</span>
-                                                        <?php endif; ?>
+
                                                     </div>
                                                     <p class="meta">Passing Score: <?php echo esc_html( rgar( $quiz, 'sbm_pass_percent', 80 ) ); ?>%</p>
                                                 </div>
-                                                <?php if ( $has_passed || $has_attempted ) : ?>
-                                                    <?php if ( in_array( $quiz_id, $allowed_retakes, true ) ) : ?>
-                                                        <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start btn-retake">Retake Exam</a>
-                                                    <?php else : ?>
-                                                        <span style="font-size: 13px; color: #64748b; font-weight: 600; font-style: italic; display: inline-block; padding: 6px 12px;"><?php esc_html_e( 'Completed', 'safety-badges-manager' ); ?></span>
-                                                    <?php endif; ?>
+                                                <?php if ( ( $has_passed || $has_attempted ) && ! in_array( $quiz_id, $allowed_retakes, true ) ) : ?>
+                                                    <span style="font-size: 13px; color: #64748b; font-weight: 600; font-style: italic; display: inline-block; padding: 6px 12px;"><?php esc_html_e( 'Completed', 'safety-badges-manager' ); ?></span>
                                                 <?php else : ?>
                                                     <a href="<?php echo esc_url( add_query_arg( 'quiz_id', $quiz['id'], home_url('/') ) ); ?>" class="btn-start">Start Exam</a>
                                                 <?php endif; ?>
@@ -1555,7 +1572,7 @@ class SBM_Gravity_Forms {
                                         <?php endforeach; ?>
                                     </div>
                                 <?php else : ?>
-                                    <p style="font-style: italic; color: #64748b; margin: 0;"><?php esc_html_e( 'No active safety exams are currently available.', 'safety-badges-manager' ); ?></p>
+                                    <p style="font-style: italic; color: #64748b; margin: 0;"><?php esc_html_e( 'No exams have been assigned to you yet. Please contact your training administrator.', 'safety-badges-manager' ); ?></p>
                                 <?php endif; ?>
                             </div>
                         </div>

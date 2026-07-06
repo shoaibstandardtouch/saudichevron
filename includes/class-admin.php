@@ -41,6 +41,7 @@ class SBM_Admin {
 
         // Register Global Settings Search AJAX handler
         add_action( 'wp_ajax_sbm_global_search', array( $this, 'handle_global_search' ) );
+        add_action( 'wp_ajax_sbm_employee_training_lookup', array( $this, 'handle_employee_training_lookup' ) );
 
         // Restrict admin dashboard access for non-admin users (subscribers/employees)
         add_action( 'admin_init', array( $this, 'restrict_admin_access' ) );
@@ -163,18 +164,60 @@ class SBM_Admin {
             <hr class="wp-header-end">
 
             <!-- Stats Cards Grid -->
-            <div class="sbm-grid sbm-stats-cards">
-                <div class="sbm-card card-active">
-                    <h3><?php esc_html_e( 'Active Badges', 'safety-badges-manager' ); ?></h3>
-                    <p class="stat-number"><?php echo esc_html( $stats['compliance']['active'] ); ?></p>
+            <div class="sbm-grid sbm-stats-cards" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                <div class="sbm-card" style="border-left-color: #64748b;">
+                    <h3><?php esc_html_e( 'Total Exam Attempts (This Month)', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $current_month_passes + $current_month_fails ); ?></p>
                 </div>
-                <div class="sbm-card card-active" style="border-left-color: #059669;">
-                    <h3><?php esc_html_e( 'Passed (Current Month)', 'safety-badges-manager' ); ?></h3>
+                <div class="sbm-card card-active" style="border-left-color: #10b981;">
+                    <h3><?php esc_html_e( 'Passed (This Month)', 'safety-badges-manager' ); ?></h3>
                     <p class="stat-number"><?php echo esc_html( $current_month_passes ); ?></p>
                 </div>
-                <div class="sbm-card card-expired" style="border-left-color: #dc2626;">
-                    <h3><?php esc_html_e( 'Failed (Current Month)', 'safety-badges-manager' ); ?></h3>
+                <div class="sbm-card card-expired" style="border-left-color: #ef4444;">
+                    <h3><?php esc_html_e( 'Failed (This Month)', 'safety-badges-manager' ); ?></h3>
                     <p class="stat-number"><?php echo esc_html( $current_month_fails ); ?></p>
+                </div>
+                <div class="sbm-card" style="border-left-color: #3b82f6;">
+                    <h3><?php esc_html_e( 'Pass Rate (This Month)', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php 
+                        $total = $current_month_passes + $current_month_fails;
+                        echo esc_html( $total > 0 ? round( ( $current_month_passes / $total ) * 100 ) . '%' : '0%' ); 
+                    ?></p>
+                </div>
+            </div>
+
+            <!-- Individual Training Record Lookup (Fix #10) -->
+            <div class="sbm-card" style="margin-top: 25px; margin-bottom: 25px;">
+                <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 16px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                    <?php esc_html_e( 'Individual Candidate Exam Results', 'safety-badges-manager' ); ?>
+                </h3>
+                <div style="margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <label for="sbm_training_lookup_select" style="font-weight: 600; margin-right: 5px;"><?php esc_html_e( 'Select Employee:', 'safety-badges-manager' ); ?></label>
+                    <select id="sbm_training_lookup_select" style="min-width: 250px; max-width: 100%;">
+                        <option value=""><?php esc_html_e( '-- Choose an Employee --', 'safety-badges-manager' ); ?></option>
+                        <?php
+                        $employees_list = $this->db->get_employee_records( array( 'number' => 5000, 'offset' => 0, 'orderby' => 'display_name' ) );
+                        foreach ( $employees_list as $emp ) {
+                            echo '<option value="' . esc_attr( $emp->user_id ) . '">' . esc_html( SBM()->gravity_forms->heal_user_display_name( $emp->user_id ) ) . ' (' . esc_html( $emp->iqama ) . ')</option>';
+                        }
+                        ?>
+                    </select>
+                    <span id="sbm_training_lookup_spinner" class="spinner" style="margin-top: 0;"></span>
+                </div>
+                
+                <div id="sbm_training_lookup_results" style="display: none; overflow-x: auto;">
+                    <table class="wp-list-table widefat fixed striped" style="border: none; box-shadow: none;">
+                        <thead>
+                            <tr>
+                                <th style="font-weight: 600;"><?php esc_html_e( 'Date', 'safety-badges-manager' ); ?></th>
+                                <th style="font-weight: 600;"><?php esc_html_e( 'Exam Title', 'safety-badges-manager' ); ?></th>
+                                <th style="font-weight: 600;"><?php esc_html_e( 'Score', 'safety-badges-manager' ); ?></th>
+                                <th style="font-weight: 600;"><?php esc_html_e( 'Result', 'safety-badges-manager' ); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody id="sbm_training_lookup_body">
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -1163,6 +1206,7 @@ class SBM_Admin {
         // Redirect back to profile page
         $badge = $this->db->get_badge( $badge_id );
         wp_safe_redirect( admin_url( 'admin.php?page=safety-employees&action=view&user_id=' . $badge->user_id ) );
+        exit;
     }
 
     public function handle_employee_settings_update() {
@@ -1441,30 +1485,13 @@ class SBM_Admin {
             <!-- Step Cards -->
             <div style="display: flex; flex-direction: column; gap: 20px;">
                 
+
+
                 <!-- Step 1 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
                     <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">1</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
-                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;">
-                            <?php esc_html_e( 'Install & Activate Gravity Forms', 'safety-badges-manager' ); ?>
-                            <?php if ( $gf_active ) : ?>
-                                <span class="sbm-step-status" style="color: #10b981; margin-left: 10px; font-size: 16px;">&#10004;</span>
-                            <?php else : ?>
-                                <span class="sbm-step-status" style="color: #f59e0b; margin-left: 10px; font-size: 16px;">&#9888;</span>
-                            <?php endif; ?>
-                        </h3>
-                        <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
-                            <?php esc_html_e( 'This plugin requires Gravity Forms with the Quiz add-on. Gravity Forms handles the exam/quiz creation while Safety Badges Manager extends it to issue certificates and track compliance.', 'safety-badges-manager' ); ?>
-                        </p>
-                        <a href="<?php echo esc_url( admin_url( 'plugins.php' ) ); ?>" class="button button-secondary"><?php esc_html_e( 'Manage Plugins', 'safety-badges-manager' ); ?></a>
-                    </div>
-                </div>
-
-                <!-- Step 2 -->
-                <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">2</div>
-                    <div class="sbm-step-content" style="flex-grow: 1;">
-                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Create a Safety Exam (Gravity Form)', 'safety-badges-manager' ); ?></h3>
+                        <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Create a Safety Exam', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
                             <?php esc_html_e( 'Create a new Gravity Form and add Quiz fields for your safety questions. Each form represents one exam/training module. Use the Quiz add-on field types to build your question bank.', 'safety-badges-manager' ); ?>
                         </p>
@@ -1475,9 +1502,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 3 -->
+                <!-- Step 2 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">3</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">2</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Enable Safety Badges on the Form', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1503,9 +1530,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 4 -->
+                <!-- Step 3 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">4</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">3</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Configure Global Settings', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1515,9 +1542,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 5 -->
+                <!-- Step 4 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">5</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">4</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Customize Branding (White Label)', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1527,9 +1554,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 6 -->
+                <!-- Step 5 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">6</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">5</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Register Employees / User Accounts', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1542,9 +1569,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 7 -->
+                <!-- Step 6 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">7</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">6</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Employees Take the Exam', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1589,9 +1616,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 8 -->
+                <!-- Step 7 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">8</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">7</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Monitor Compliance on the Dashboard', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1601,9 +1628,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 9 -->
+                <!-- Step 8 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">9</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">8</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Manage Employee Records', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1613,9 +1640,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 10 -->
+                <!-- Step 9 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">10</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">9</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Generate & Print Badge PDFs', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1625,9 +1652,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 11 -->
+                <!-- Step 10 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">11</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">10</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Run Reports & Export Data', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1637,9 +1664,9 @@ class SBM_Admin {
                     </div>
                 </div>
 
-                <!-- Step 12 -->
+                <!-- Step 11 -->
                 <div class="sbm-card sbm-step-card" style="display: flex; gap: 20px; align-items: flex-start;">
-                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">12</div>
+                    <div class="sbm-step-number" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #0f172a; color: #ffffff; font-weight: 700; flex-shrink: 0; font-size: 16px;">11</div>
                     <div class="sbm-step-content" style="flex-grow: 1;">
                         <h3 class="sbm-step-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #0f172a;"><?php esc_html_e( 'Automated Expiry & Notifications', 'safety-badges-manager' ); ?></h3>
                         <p class="sbm-step-desc" style="margin: 0 0 15px 0; font-size: 14px; color: #475569; line-height: 1.5;">
@@ -1703,6 +1730,50 @@ class SBM_Admin {
 
         </div>
         <?php
+    }
+
+    /**
+     * Handle AJAX lookup for an employee's full training record (Fix #10).
+     */
+    public function handle_employee_training_lookup() {
+        check_ajax_referer( 'sbm_global_search_nonce', 'nonce' ); // Reusing the global search nonce
+
+        if ( ! current_user_can( 'manage_safety_training' ) ) {
+            wp_send_json_error( esc_html__( 'Unauthorized user.', 'safety-badges-manager' ) );
+        }
+
+        $user_id = isset( $_GET['user_id'] ) ? intval( $_GET['user_id'] ) : 0;
+        if ( ! $user_id ) {
+            wp_send_json_error( esc_html__( 'Invalid employee ID.', 'safety-badges-manager' ) );
+        }
+
+        $trainings = $this->db->get_employee_all_trainings( $user_id );
+        $formatted = array();
+
+        if ( ! empty( $trainings ) ) {
+            foreach ( $trainings as $t ) {
+                $form_title = 'Form #' . $t->form_id;
+                if ( class_exists( 'GFAPI' ) ) {
+                    $form_info = GFAPI::get_form( $t->form_id );
+                    if ( $form_info ) {
+                        $form_title = $form_info['title'];
+                    }
+                }
+                
+                $status_text = $t->is_pass == '1' ? 'Passed' : 'Failed';
+                $status_class = $t->is_pass == '1' ? 'status-passed' : 'status-failed';
+                $badge_html = '<span class="attempt-result-tag ' . esc_attr( $status_class ) . '">' . esc_html( $status_text ) . '</span>';
+                
+                $formatted[] = array(
+                    'date'    => date_i18n( get_option( 'date_format' ) . ' H:i', strtotime( $t->date_created ) ),
+                    'title'   => $form_title,
+                    'score'   => $t->score_percent !== null ? floatval( $t->score_percent ) . '%' : '-',
+                    'result'  => $badge_html
+                );
+            }
+        }
+
+        wp_send_json_success( $formatted );
     }
 
     /**

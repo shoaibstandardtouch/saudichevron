@@ -11,17 +11,23 @@ jQuery(document).ready(function($) {
         // 1. Compliance Doughnut Chart
         var ctxCompliance = document.getElementById('sbmComplianceChart');
         if (ctxCompliance) {
+            var currentMonthPasses = 0;
+            var currentMonthFails = 0;
+            if (sbmChartData.trends && sbmChartData.trends.length > 0) {
+                var latestTrend = sbmChartData.trends[sbmChartData.trends.length - 1];
+                currentMonthPasses = latestTrend.passes;
+                currentMonthFails = latestTrend.fails;
+            }
             new Chart(ctxCompliance, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Active/Compliant', 'Expired', 'Untrained'],
+                    labels: ['Passed', 'Failed'],
                     datasets: [{
                         data: [
-                            sbmChartData.compliance.active,
-                            sbmChartData.compliance.expired,
-                            sbmChartData.compliance.none
+                            currentMonthPasses,
+                            currentMonthFails
                         ],
-                        backgroundColor: ['#10b981', '#ef4444', '#94a3b8'],
+                        backgroundColor: ['#10b981', '#ef4444'],
                         borderColor: '#ffffff',
                         borderWidth: 2
                     }]
@@ -511,4 +517,57 @@ jQuery(document).ready(function($) {
 
         resultsDropdown.html(html).addClass('active');
     }
+
+    // Handle Individual Training Record Lookup (Fix #10)
+    $('#sbm_training_lookup_select').on('change', function() {
+        var userId = $(this).val();
+        var $spinner = $('#sbm_training_lookup_spinner');
+        var $resultsDiv = $('#sbm_training_lookup_results');
+        var $tbody = $('#sbm_training_lookup_body');
+        
+        if (!userId) {
+            $resultsDiv.hide();
+            return;
+        }
+
+        $spinner.addClass('is-active').css('display', 'inline-block');
+        $resultsDiv.hide();
+
+        $.ajax({
+            url: ajaxurl,
+            type: 'GET',
+            data: {
+                action: 'sbm_employee_training_lookup',
+                user_id: userId,
+                nonce: sbmAdmin.globalSearchNonce
+            },
+            success: function(response) {
+                $spinner.removeClass('is-active').hide();
+                if (response.success && response.data) {
+                    $tbody.empty();
+                    if (response.data.length === 0) {
+                        $tbody.append('<tr><td colspan="4" style="text-align: center; padding: 15px;">No training records found for this employee.</td></tr>');
+                    } else {
+                        response.data.forEach(function(item) {
+                            $tbody.append(
+                                '<tr>' +
+                                '<td>' + escapeHtml(item.date) + '</td>' +
+                                '<td>' + escapeHtml(item.title) + '</td>' +
+                                '<td>' + escapeHtml(item.score) + '</td>' +
+                                '<td>' + item.result + '</td>' +
+                                '</tr>'
+                            );
+                        });
+                    }
+                    $resultsDiv.show();
+                } else {
+                    alert('Failed to retrieve training records.');
+                }
+            },
+            error: function() {
+                $spinner.removeClass('is-active').hide();
+                alert('An error occurred during lookup.');
+            }
+        });
+    });
 });

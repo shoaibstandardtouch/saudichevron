@@ -659,3 +659,21 @@
     font-style: italic;
 }
 
+/* Responsive Styles for Get Started Page */
+@media (max-width: 768px) {
+    .sbm-get-started-wrap .sbm-card {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center;
+    }
+    .sbm-get-started-wrap .sbm-step-card {
+        flex-direction: column !important;
+        text-align: center;
+    }
+    .sbm-get-started-wrap .sbm-step-number {
+        margin: 0 auto 10px;
+    }
+    .sbm-get-started-wrap .sbm-step-content > div {
+        justify-content: center;
+    }
+}
