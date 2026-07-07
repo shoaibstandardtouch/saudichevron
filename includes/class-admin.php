@@ -1177,7 +1177,6 @@ class SBM_Admin {
 
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Global settings saved successfully.', 'safety-badges-manager' ) . '</p></div>';
         }
-
         $global_printing  = get_option( 'sbm_global_allow_printing', 'yes' );
         $page_size        = get_option( 'sbm_pdf_page_size', 'A4' );
         $page_orientation = get_option( 'sbm_pdf_page_orientation', 'portrait' );
@@ -1185,17 +1184,6 @@ class SBM_Admin {
         <div class="wrap sbm-settings-wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Safety Badges Settings', 'safety-badges-manager' ); ?></h1>
             <hr class="wp-header-end">
-
-            <!-- Global Search Card -->
-            <div class="sbm-card sbm-global-search-card" style="max-width: 800px; margin-top: 20px; margin-bottom: 25px;">
-                <h3><?php esc_html_e( 'Global Search', 'safety-badges-manager' ); ?></h3>
-                <p class="description"><?php esc_html_e( 'Search across employees, badges, exam entries, and forms. Type at least 3 characters.', 'safety-badges-manager' ); ?></p>
-                <div class="sbm-search-wrapper" style="position: relative;">
-                    <input type="text" id="sbm-global-search" class="regular-text" style="width: 100%; box-sizing: border-box;" placeholder="<?php esc_attr_e( 'Search by name, email, IQAMA, badge number, form title...', 'safety-badges-manager' ); ?>" autocomplete="off" />
-                    <div id="sbm-search-spinner" class="spinner" style="float: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: none;"></div>
-                    <div id="sbm-search-results" class="sbm-search-dropdown"></div>
-                </div>
-            </div>
 
             <div class="sbm-card" style="max-width: 800px; margin-top: 20px;">
                 <h3 style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; font-size: 18px; color: #0f172a;">
@@ -1559,6 +1547,17 @@ class SBM_Admin {
                 <div>
                     <h1 style="margin: 0 0 5px 0; font-size: 24px; font-weight: 700; color: #0f172a;"><?php esc_html_e( 'Welcome to Safety Badges Manager', 'safety-badges-manager' ); ?></h1>
                     <p style="margin: 0; font-size: 15px; color: #64748b;"><?php esc_html_e( 'Follow the steps below to set up and manage your safety training compliance system.', 'safety-badges-manager' ); ?></p>
+                </div>
+            </div>
+            
+            <!-- Global Search Card -->
+            <div class="sbm-card sbm-global-search-card" style="margin-bottom: 25px;">
+                <h3><?php esc_html_e( 'Global Search', 'safety-badges-manager' ); ?></h3>
+                <p class="description"><?php esc_html_e( 'Search across employees, badges, exam entries, and forms. Type at least 3 characters.', 'safety-badges-manager' ); ?></p>
+                <div class="sbm-search-wrapper" style="position: relative;">
+                    <input type="text" id="sbm-global-search" class="regular-text" style="width: 100%; box-sizing: border-box;" placeholder="<?php esc_attr_e( 'Search by name, email, IQAMA, badge number, form title...', 'safety-badges-manager' ); ?>" autocomplete="off" />
+                    <div id="sbm-search-spinner" class="spinner" style="float: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: none;"></div>
+                    <div id="sbm-search-results" class="sbm-search-dropdown"></div>
                 </div>
             </div>
 

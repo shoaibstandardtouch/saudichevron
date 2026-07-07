@@ -8,9 +8,7 @@ jQuery(document).ready(function($) {
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    if (typeof sbmChartData === 'undefined' && typeof sbmReportsChartData === 'undefined') {
-        return;
-    }
+
 
     // 1. Dashboard Charts (Only if sbmChartData is defined)
     if (typeof sbmChartData !== 'undefined') {
