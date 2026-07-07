@@ -378,11 +378,11 @@ jQuery(document).ready(function($) {
 
         if (query.length < 3) {
             resultsDropdown.removeClass('active').html('');
-            spinner.hide();
+            spinner.removeClass('is-active').hide();
             return;
         }
 
-        spinner.show();
+        spinner.addClass('is-active').show();
 
         searchTimeout = setTimeout(function() {
             $.ajax({
@@ -395,7 +395,7 @@ jQuery(document).ready(function($) {
                     q: query
                 },
                 success: function(response) {
-                    spinner.hide();
+                    spinner.removeClass('is-active').hide();
                     if (response.success) {
                         renderResults(response.data, query);
                     } else {
@@ -403,7 +403,7 @@ jQuery(document).ready(function($) {
                     }
                 },
                 error: function() {
-                    spinner.hide();
+                    spinner.removeClass('is-active').hide();
                     resultsDropdown.addClass('active').html('<div class="sbm-search-no-results">Error performing search</div>');
                 }
             });
