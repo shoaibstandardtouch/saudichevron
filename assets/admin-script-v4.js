@@ -360,6 +360,13 @@ jQuery(document).ready(function($) {
  * Global Search AJAX Handler
  */
 jQuery(document).ready(function($) {
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"'`=\/]/g, function (s) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;' }[s];
+        });
+    }
+
     var searchInput = $('#sbm-global-search');
     var resultsDropdown = $('#sbm-search-results');
     var spinner = $('#sbm-search-spinner');
