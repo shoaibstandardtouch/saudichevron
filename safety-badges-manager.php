@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define Constants
-define( 'SBM_VERSION', '1.5.1' );
+define( 'SBM_VERSION', '1.5.2' );
 define( 'SBM_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SBM_URL', plugin_dir_url( __FILE__ ) );
 define( 'SBM_BASENAME', plugin_basename( __FILE__ ) );

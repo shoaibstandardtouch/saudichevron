@@ -462,6 +462,21 @@ class SBM_DB {
             );
         }
 
+        // 4. All-time stats for the KPI cards
+        $all_time_passes = 0;
+        $all_time_fails  = 0;
+        
+        $all_time_passes = (int) $wpdb->get_var( "SELECT COUNT(id) FROM $this->table_name" );
+        
+        if ( $gf_table_exists ) {
+            $all_time_fails = (int) $wpdb->get_var( "
+                SELECT COUNT(DISTINCT e.id) 
+                FROM $gf_entries_table e
+                INNER JOIN $gf_entry_meta_table em ON e.id = em.entry_id
+                WHERE em.meta_key = 'gquiz_is_pass' AND em.meta_value = '0'
+            " );
+        }
+
         return array(
             'compliance' => array(
                 'active'  => $active_count,
@@ -469,7 +484,11 @@ class SBM_DB {
                 'none'    => $none_count
             ),
             'trends' => $trends,
-            'expiry_forecast' => $expiry_forecast
+            'expiry_forecast' => $expiry_forecast,
+            'all_time' => array(
+                'passes' => $all_time_passes,
+                'fails'  => $all_time_fails
+            )
         );
     }
 

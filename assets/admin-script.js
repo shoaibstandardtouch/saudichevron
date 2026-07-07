@@ -17,21 +17,17 @@ jQuery(document).ready(function($) {
         // 1. Compliance Doughnut Chart
         var ctxCompliance = document.getElementById('sbmDashboardPassFailChart');
         if (ctxCompliance) {
-            var currentMonthPasses = 0;
-            var currentMonthFails = 0;
-            if (sbmChartData.trends && sbmChartData.trends.length > 0) {
-                var latestTrend = sbmChartData.trends[sbmChartData.trends.length - 1];
-                currentMonthPasses = latestTrend.passes;
-                currentMonthFails = latestTrend.fails;
-            }
+            var totalPasses = typeof sbmDashboardAllTimeStats !== 'undefined' ? sbmDashboardAllTimeStats.passes : 0;
+            var totalFails  = typeof sbmDashboardAllTimeStats !== 'undefined' ? sbmDashboardAllTimeStats.fails : 0;
+            
             new Chart(ctxCompliance, {
                 type: 'doughnut',
                 data: {
                     labels: ['Passed', 'Failed'],
                     datasets: [{
                         data: [
-                            currentMonthPasses,
-                            currentMonthFails
+                            totalPasses,
+                            totalFails
                         ],
                         backgroundColor: ['#10b981', '#ef4444'],
                         borderColor: '#ffffff',

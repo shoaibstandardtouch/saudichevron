@@ -149,15 +149,10 @@ class SBM_Admin {
     public function render_dashboard_page() {
         $stats = $this->db->get_dashboard_stats();
         
-        $current_month_passes = 0;
-        $current_month_fails  = 0;
-        if ( ! empty( $stats['trends'] ) ) {
-            $current_month_trend = end( $stats['trends'] );
-            if ( $current_month_trend ) {
-                $current_month_passes = $current_month_trend['passes'];
-                $current_month_fails  = $current_month_trend['fails'];
-            }
-        }
+        $total_passes = isset( $stats['all_time'] ) ? $stats['all_time']['passes'] : 0;
+        $total_fails  = isset( $stats['all_time'] ) ? $stats['all_time']['fails'] : 0;
+        $total_attempts = $total_passes + $total_fails;
+        $pass_rate = $total_attempts > 0 ? round( ( $total_passes / $total_attempts ) * 100 ) : 0;
         $recent_certifications = $this->db->get_recent_certifications( 5 );
         ?>
         <div class="wrap sbm-dashboard-wrap">
@@ -167,23 +162,20 @@ class SBM_Admin {
             <!-- Stats Cards Grid -->
             <div class="sbm-grid sbm-stats-cards" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                 <div class="sbm-card" style="border-left-color: #64748b;">
-                    <h3><?php esc_html_e( 'Total Exam Attempts (This Month)', 'safety-badges-manager' ); ?></h3>
-                    <p class="stat-number"><?php echo esc_html( $current_month_passes + $current_month_fails ); ?></p>
+                    <h3><?php esc_html_e( 'Total Exam Attempts (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $total_attempts ); ?></p>
                 </div>
                 <div class="sbm-card card-active" style="border-left-color: #10b981;">
-                    <h3><?php esc_html_e( 'Passed (This Month)', 'safety-badges-manager' ); ?></h3>
-                    <p class="stat-number"><?php echo esc_html( $current_month_passes ); ?></p>
+                    <h3><?php esc_html_e( 'Passed (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $total_passes ); ?></p>
                 </div>
                 <div class="sbm-card card-expired" style="border-left-color: #ef4444;">
-                    <h3><?php esc_html_e( 'Failed (This Month)', 'safety-badges-manager' ); ?></h3>
-                    <p class="stat-number"><?php echo esc_html( $current_month_fails ); ?></p>
+                    <h3><?php esc_html_e( 'Failed (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $total_fails ); ?></p>
                 </div>
                 <div class="sbm-card" style="border-left-color: #3b82f6;">
-                    <h3><?php esc_html_e( 'Pass Rate (This Month)', 'safety-badges-manager' ); ?></h3>
-                    <p class="stat-number"><?php 
-                        $total = $current_month_passes + $current_month_fails;
-                        echo esc_html( $total > 0 ? round( ( $current_month_passes / $total ) * 100 ) . '%' : '0%' ); 
-                    ?></p>
+                    <h3><?php esc_html_e( 'Pass Rate (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <p class="stat-number"><?php echo esc_html( $pass_rate . '%' ); ?></p>
                 </div>
             </div>
 
@@ -225,9 +217,9 @@ class SBM_Admin {
             <!-- Charts Grid -->
             <div class="sbm-grid sbm-charts-grid">
                 <!-- Doughnut Chart for Pass/Fail -->
-                <div class="sbm-card chart-card">
-                    <h3><?php esc_html_e( 'Pass vs Fail Ratio (This Month)', 'safety-badges-manager' ); ?></h3>
-                    <div class="chart-container">
+                <div class="sbm-card chart-container">
+                    <h3><?php esc_html_e( 'Pass vs Fail Ratio (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <div style="position: relative; height: 300px; width: 100%;">
                         <canvas id="sbmDashboardPassFailChart"></canvas>
                     </div>
                 </div>
@@ -244,9 +236,9 @@ class SBM_Admin {
             <!-- Embed Data securely for Chart.js -->
             <script type="text/javascript">
                 var sbmChartData = <?php echo wp_json_encode( $stats ); ?>;
-                var sbmDashboardMonthStats = {
-                    passes: <?php echo intval( $current_month_passes ); ?>,
-                    fails: <?php echo intval( $current_month_fails ); ?>
+                var sbmDashboardAllTimeStats = {
+                    passes: <?php echo intval( $total_passes ); ?>,
+                    fails: <?php echo intval( $total_fails ); ?>
                 };
             </script>
         </div>
