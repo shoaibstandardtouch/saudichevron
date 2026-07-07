@@ -539,7 +539,7 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 $spinner.removeClass('is-active').hide();
-                if (response.success && response.data) {
+                if (response && response.success && response.data) {
                     $tbody.empty();
                     if (response.data.length === 0) {
                         $tbody.append('<tr><td colspan="4" style="text-align: center; padding: 15px;">No training records found for this employee.</td></tr>');
@@ -557,12 +557,13 @@ jQuery(document).ready(function($) {
                     }
                     $resultsDiv.show();
                 } else {
-                    alert('Failed to retrieve training records.');
+                    alert('Failed to retrieve training records. ' + (response.data || 'Unknown error.'));
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
                 $spinner.removeClass('is-active').hide();
-                alert('An error occurred during lookup.');
+                alert('Server error: ' + error + '. Please check the console or server logs.');
+                console.error(xhr.responseText);
             }
         });
     });
