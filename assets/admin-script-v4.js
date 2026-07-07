@@ -545,9 +545,9 @@ jQuery(document).ready(function($) {
 
     $('#sbm_training_lookup_select').on('change', function() {
         var userId = $(this).val();
-        var $spinner = $('#sbm-lookup-spinner');
+        var $spinner = $('#sbm_training_lookup_spinner');
         var $resultsDiv = $('#sbm_training_lookup_results');
-        var $tbody = $('#sbm-training-table-body');
+        var $tbody = $('#sbm_training_lookup_body');
         
         if (!userId) {
             $resultsDiv.hide();

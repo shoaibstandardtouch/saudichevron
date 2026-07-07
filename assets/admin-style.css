@@ -683,77 +683,76 @@
     }
 }
 
- / *   G l o b a l   S e a r c h   D r o p d o w n   S t y l e s   * / 
- . s b m - s e a r c h - d r o p d o w n   { 
-         d i s p l a y :   n o n e ; 
-         p o s i t i o n :   a b s o l u t e ; 
-         t o p :   1 0 0 % ; 
-         l e f t :   0 ; 
-         r i g h t :   0 ; 
-         b a c k g r o u n d :   # f f f f f f ; 
-         b o r d e r :   1 p x   s o l i d   # c b d 5 e 1 ; 
-         b o r d e r - r a d i u s :   6 p x ; 
-         b o x - s h a d o w :   0   1 0 p x   1 5 p x   - 3 p x   r g b a ( 0 ,   0 ,   0 ,   0 . 1 ) ; 
-         z - i n d e x :   1 0 0 0 0 ; 
-         m a x - h e i g h t :   4 0 0 p x ; 
-         o v e r f l o w - y :   a u t o ; 
-         m a r g i n - t o p :   5 p x ; 
- } 
- . s b m - s e a r c h - d r o p d o w n . a c t i v e   { 
-         d i s p l a y :   b l o c k ; 
- } 
- . s b m - s e a r c h - g r o u p   { 
-         b o r d e r - b o t t o m :   1 p x   s o l i d   # f 1 f 5 f 9 ; 
-         p a d d i n g - b o t t o m :   5 p x ; 
-         m a r g i n - b o t t o m :   5 p x ; 
- } 
- . s b m - s e a r c h - g r o u p : l a s t - c h i l d   { 
-         b o r d e r - b o t t o m :   n o n e ; 
-         m a r g i n - b o t t o m :   0 ; 
-         p a d d i n g - b o t t o m :   0 ; 
- } 
- . s b m - s e a r c h - g r o u p - t i t l e   { 
-         f o n t - s i z e :   1 1 p x ; 
-         t e x t - t r a n s f o r m :   u p p e r c a s e ; 
-         f o n t - w e i g h t :   7 0 0 ; 
-         c o l o r :   # 6 4 7 4 8 b ; 
-         p a d d i n g :   8 p x   1 2 p x ; 
-         b a c k g r o u n d :   # f 8 f a f c ; 
- } 
- . s b m - s e a r c h - r e s u l t - i t e m   { 
-         d i s p l a y :   f l e x ; 
-         a l i g n - i t e m s :   c e n t e r ; 
-         g a p :   1 2 p x ; 
-         p a d d i n g :   1 0 p x   1 2 p x ; 
-         t e x t - d e c o r a t i o n :   n o n e   ! i m p o r t a n t ; 
-         t r a n s i t i o n :   b a c k g r o u n d   0 . 2 s ; 
- } 
- . s b m - s e a r c h - r e s u l t - i t e m : h o v e r   { 
-         b a c k g r o u n d :   # f 1 f 5 f 9 ; 
- } 
- . s b m - s e a r c h - r e s u l t - i t e m   . d a s h i c o n s   { 
-         c o l o r :   # 6 4 7 4 8 b ; 
-         f o n t - s i z e :   2 0 p x ; 
-         w i d t h :   2 0 p x ; 
-         h e i g h t :   2 0 p x ; 
- } 
- . s b m - s e a r c h - r e s u l t - t e x t   { 
-         d i s p l a y :   f l e x ; 
-         f l e x - d i r e c t i o n :   c o l u m n ; 
- } 
- . s b m - s e a r c h - p r i m a r y   { 
-         f o n t - w e i g h t :   6 0 0 ; 
-         c o l o r :   # 0 f 1 7 2 a ; 
-         f o n t - s i z e :   1 4 p x ; 
- } 
- . s b m - s e a r c h - s e c o n d a r y   { 
-         f o n t - s i z e :   1 2 p x ; 
-         c o l o r :   # 6 4 7 4 8 b ; 
- } 
- . s b m - s e a r c h - n o - r e s u l t s   { 
-         p a d d i n g :   1 5 p x ; 
-         t e x t - a l i g n :   c e n t e r ; 
-         c o l o r :   # 6 4 7 4 8 b ; 
-         f o n t - s t y l e :   i t a l i c ; 
- }  
- 
+/* Global Search Dropdown Styles */
+.sbm-search-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 10000;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 5px;
+}
+.sbm-search-dropdown.active {
+    display: block;
+}
+.sbm-search-group {
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+}
+.sbm-search-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.sbm-search-group-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #64748b;
+    padding: 8px 12px;
+    background: #f8fafc;
+}
+.sbm-search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    text-decoration: none !important;
+    transition: background 0.2s;
+}
+.sbm-search-result-item:hover {
+    background: #f1f5f9;
+}
+.sbm-search-result-item .dashicons {
+    color: #64748b;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+}
+.sbm-search-result-text {
+    display: flex;
+    flex-direction: column;
+}
+.sbm-search-primary {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 14px;
+}
+.sbm-search-secondary {
+    font-size: 12px;
+    color: #64748b;
+}
+.sbm-search-no-results {
+    padding: 15px;
+    text-align: center;
+    color: #64748b;
+    font-style: italic;
+}
