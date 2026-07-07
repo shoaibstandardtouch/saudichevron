@@ -358,7 +358,7 @@ class SBM_DB {
     /**
      * Get aggregate statistics of badges for Chart.js.
      */
-    public function get_dashboard_stats() {
+    public function get_dashboard_stats( $filter_month = '' ) {
         global $wpdb;
 
         // 1. Compliance distribution (active, expired, none)
@@ -462,11 +462,21 @@ class SBM_DB {
             );
         }
 
-        // 4. All-time stats for the KPI cards
+        // 4. All-time stats (or specific filtered month) for the KPI cards
         $all_time_passes = 0;
         $all_time_fails  = 0;
         
-        $all_time_passes = (int) $wpdb->get_var( "SELECT COUNT(id) FROM $this->table_name" );
+        $where_passes = "";
+        $where_fails  = "";
+        
+        if ( ! empty( $filter_month ) ) {
+            $month_start = gmdate( 'Y-m-01 00:00:00', strtotime( $filter_month ) );
+            $month_end   = gmdate( 'Y-m-t 23:59:59', strtotime( $filter_month ) );
+            $where_passes = $wpdb->prepare( " WHERE pass_date >= %s AND pass_date <= %s", $month_start, $month_end );
+            $where_fails  = $wpdb->prepare( " AND e.date_created >= %s AND e.date_created <= %s", $month_start, $month_end );
+        }
+        
+        $all_time_passes = (int) $wpdb->get_var( "SELECT COUNT(id) FROM $this->table_name $where_passes" );
         
         if ( $gf_table_exists ) {
             $all_time_fails = (int) $wpdb->get_var( "
@@ -474,6 +484,7 @@ class SBM_DB {
                 FROM $gf_entries_table e
                 INNER JOIN $gf_entry_meta_table em ON e.id = em.entry_id
                 WHERE em.meta_key = 'gquiz_is_pass' AND em.meta_value = '0'
+                $where_fails
             " );
         }
 

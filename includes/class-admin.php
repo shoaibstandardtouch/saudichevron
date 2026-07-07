@@ -147,34 +147,54 @@ class SBM_Admin {
      * Render the visual report dashboard (Chart.js analytics).
      */
     public function render_dashboard_page() {
-        $stats = $this->db->get_dashboard_stats();
+        $filter_month = isset( $_GET['sbm_filter_month'] ) ? sanitize_text_field( $_GET['sbm_filter_month'] ) : '';
+        $stats = $this->db->get_dashboard_stats( $filter_month );
         
         $total_passes = isset( $stats['all_time'] ) ? $stats['all_time']['passes'] : 0;
         $total_fails  = isset( $stats['all_time'] ) ? $stats['all_time']['fails'] : 0;
         $total_attempts = $total_passes + $total_fails;
         $pass_rate = $total_attempts > 0 ? round( ( $total_passes / $total_attempts ) * 100 ) : 0;
+        
         $recent_certifications = $this->db->get_recent_certifications( 5 );
+        $label_suffix = empty( $filter_month ) ? esc_html__( '(All Time)', 'safety-badges-manager' ) : '(' . gmdate( 'F Y', strtotime( $filter_month ) ) . ')';
         ?>
         <div class="wrap sbm-dashboard-wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Safety Compliance Dashboard', 'safety-badges-manager' ); ?></h1>
             <hr class="wp-header-end">
+            
+            <form method="get" action="" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+                <input type="hidden" name="page" value="safety-training" />
+                <label for="sbm_filter_month"><strong><?php esc_html_e( 'Filter Stats:', 'safety-badges-manager' ); ?></strong></label>
+                <select name="sbm_filter_month" id="sbm_filter_month">
+                    <option value=""><?php esc_html_e( 'All Time', 'safety-badges-manager' ); ?></option>
+                    <?php
+                    for ( $i = 0; $i < 12; $i++ ) {
+                        $m_val = gmdate( 'Y-m', strtotime( "-$i months" ) );
+                        $m_label = gmdate( 'F Y', strtotime( "-$i months" ) );
+                        $selected = selected( $filter_month, $m_val, false );
+                        echo "<option value='{$m_val}' {$selected}>{$m_label}</option>";
+                    }
+                    ?>
+                </select>
+                <input type="submit" class="button button-secondary" value="<?php esc_attr_e( 'Apply Filter', 'safety-badges-manager' ); ?>" />
+            </form>
 
             <!-- Stats Cards Grid -->
             <div class="sbm-grid sbm-stats-cards" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                 <div class="sbm-card" style="border-left-color: #64748b;">
-                    <h3><?php esc_html_e( 'Total Exam Attempts (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php printf( esc_html__( 'Total Exam Attempts %s', 'safety-badges-manager' ), $label_suffix ); ?></h3>
                     <p class="stat-number"><?php echo esc_html( $total_attempts ); ?></p>
                 </div>
                 <div class="sbm-card card-active" style="border-left-color: #10b981;">
-                    <h3><?php esc_html_e( 'Passed (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php printf( esc_html__( 'Passed %s', 'safety-badges-manager' ), $label_suffix ); ?></h3>
                     <p class="stat-number"><?php echo esc_html( $total_passes ); ?></p>
                 </div>
                 <div class="sbm-card card-expired" style="border-left-color: #ef4444;">
-                    <h3><?php esc_html_e( 'Failed (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php printf( esc_html__( 'Failed %s', 'safety-badges-manager' ), $label_suffix ); ?></h3>
                     <p class="stat-number"><?php echo esc_html( $total_fails ); ?></p>
                 </div>
                 <div class="sbm-card" style="border-left-color: #3b82f6;">
-                    <h3><?php esc_html_e( 'Pass Rate (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php printf( esc_html__( 'Pass Rate %s', 'safety-badges-manager' ), $label_suffix ); ?></h3>
                     <p class="stat-number"><?php echo esc_html( $pass_rate . '%' ); ?></p>
                 </div>
             </div>
@@ -218,7 +238,7 @@ class SBM_Admin {
             <div class="sbm-grid sbm-charts-grid">
                 <!-- Doughnut Chart for Pass/Fail -->
                 <div class="sbm-card chart-container">
-                    <h3><?php esc_html_e( 'Pass vs Fail Ratio (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <h3><?php printf( esc_html__( 'Pass vs Fail Ratio %s', 'safety-badges-manager' ), $label_suffix ); ?></h3>
                     <div style="position: relative; height: 300px; width: 100%;">
                         <canvas id="sbmDashboardPassFailChart"></canvas>
                     </div>
