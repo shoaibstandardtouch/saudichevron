@@ -435,7 +435,8 @@ jQuery(document).ready(function($) {
             hasResults = true;
             html += '<div class="sbm-search-group">';
             html += '<div class="sbm-search-group-title">Employees</div>';
-            data.employees.forEach(function(item) {
+            data.employees = $.isArray(data.employees) ? data.employees : $.map(data.employees, function(v) { return v; });
+            $.each(data.employees, function(index, item) {
                 var secondary = item.email;
                 if (item.iqama) {
                     secondary += ' &middot; IQAMA: ' + item.iqama;
@@ -458,7 +459,8 @@ jQuery(document).ready(function($) {
             hasResults = true;
             html += '<div class="sbm-search-group">';
             html += '<div class="sbm-search-group-title">Badges</div>';
-            data.badges.forEach(function(item) {
+            data.badges = $.isArray(data.badges) ? data.badges : $.map(data.badges, function(v) { return v; });
+            $.each(data.badges, function(index, item) {
                 var secondary = 'Status: ' + item.status.toUpperCase() + ' &middot; Certified: ' + item.pass_date + ' &middot; Expires: ' + item.expiry_date;
                 if (item.user_name) {
                     secondary = escapeHtml(item.user_name) + ' &middot; ' + secondary;
@@ -478,7 +480,8 @@ jQuery(document).ready(function($) {
             hasResults = true;
             html += '<div class="sbm-search-group">';
             html += '<div class="sbm-search-group-title">Entries</div>';
-            data.entries.forEach(function(item) {
+            data.entries = $.isArray(data.entries) ? data.entries : $.map(data.entries, function(v) { return v; });
+            $.each(data.entries, function(index, item) {
                 var secondary = escapeHtml(item.user_name) + ' &middot; ' + item.date + ' &middot; Score: ' + item.score + ' &middot; ' + item.result;
                 html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
                 html += '<span class="dashicons dashicons-media-text"></span>';
@@ -495,7 +498,8 @@ jQuery(document).ready(function($) {
             hasResults = true;
             html += '<div class="sbm-search-group">';
             html += '<div class="sbm-search-group-title">Forms</div>';
-            data.forms.forEach(function(item) {
+            data.forms = $.isArray(data.forms) ? data.forms : $.map(data.forms, function(v) { return v; });
+            $.each(data.forms, function(index, item) {
                 var secondary = 'Pass Threshold: ' + item.pass_percent + '% &middot; Validity: ' + item.validity_days + ' days';
                 html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
                 html += '<span class="dashicons dashicons-welcome-learn-more"></span>';
@@ -517,9 +521,9 @@ jQuery(document).ready(function($) {
     // Handle Individual Training Record Lookup (Fix #10)
     $('#sbm_training_lookup_select').on('change', function() {
         var userId = $(this).val();
-        var $spinner = $('#sbm_training_lookup_spinner');
+        var $spinner = $('#sbm-lookup-spinner');
         var $resultsDiv = $('#sbm_training_lookup_results');
-        var $tbody = $('#sbm_training_lookup_body');
+        var $tbody = $('#sbm-training-table-body');
         
         if (!userId) {
             $resultsDiv.hide();
@@ -544,7 +548,8 @@ jQuery(document).ready(function($) {
                     if (response.data.length === 0) {
                         $tbody.append('<tr><td colspan="4" style="text-align: center; padding: 15px;">No training records found for this employee.</td></tr>');
                     } else {
-                        response.data.forEach(function(item) {
+                        response.data = $.isArray(response.data) ? response.data : $.map(response.data, function(v) { return v; });
+                        $.each(response.data, function(index, item) {
                             $tbody.append(
                                 '<tr>' +
                                 '<td>' + escapeHtml(item.date) + '</td>' +
