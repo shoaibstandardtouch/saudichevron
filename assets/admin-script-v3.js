@@ -2,8 +2,6 @@
  * Safety Badges Manager Chart.js Initializations
  */
 jQuery(document).ready(function($) {
-    alert("Admin Script V3 is loaded and running!");
-
     // Helper to escape HTML tags
     function escapeHtml(str) {
         if (!str) return '';

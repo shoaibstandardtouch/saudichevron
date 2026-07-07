@@ -234,20 +234,18 @@ class SBM_Admin {
                 </div>
             </div>
 
-            <!-- Charts Grid -->
-            <div class="sbm-grid sbm-charts-grid">
-                <!-- Doughnut Chart for Pass/Fail -->
-                <div class="sbm-card chart-container">
-                    <h3><?php printf( esc_html__( 'Pass vs Fail Ratio %s', 'safety-badges-manager' ), $label_suffix ); ?></h3>
-                    <div style="position: relative; height: 300px; width: 100%;">
+            <!-- Charts Section -->
+            <div class="sbm-dashboard-charts sbm-grid sbm-charts-grid-uneven" style="margin-bottom: 25px;">
+                <div class="sbm-card" style="margin: 0; min-height: 350px; min-width: 0;">
+                    <h3><?php esc_html_e( 'Pass vs Fail Ratio (All Time)', 'safety-badges-manager' ); ?></h3>
+                    <div class="sbm-chart-container" style="position: relative; height: 300px; width: 100%;">
                         <canvas id="sbmDashboardPassFailChart"></canvas>
                     </div>
                 </div>
-
-                <!-- Stacked Bar Chart for Pass/Fail Trends -->
-                <div class="sbm-card chart-card">
+                
+                <div class="sbm-card" style="margin: 0; min-height: 350px; min-width: 0;">
                     <h3><?php esc_html_e( 'Exam Attempts Trend (6 Months)', 'safety-badges-manager' ); ?></h3>
-                    <div class="chart-container">
+                    <div class="sbm-chart-container" style="position: relative; height: 300px; width: 100%;">
                         <canvas id="sbmTrendsChart"></canvas>
                     </div>
                 </div>
