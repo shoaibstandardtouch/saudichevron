@@ -134,7 +134,7 @@ class SBM_Admin {
         wp_enqueue_style( 'sbm-admin-css', SBM_URL . 'assets/admin-style.css', array(), SBM_VERSION );
         
         // Enqueue admin JS
-        wp_enqueue_script( 'sbm-admin-js', SBM_URL . 'assets/admin-script-v3.js', array( 'jquery', 'chartjs' ), SBM_VERSION, true );
+        wp_enqueue_script( 'sbm-admin-js', SBM_URL . 'assets/admin-script-v4.js', array( 'jquery', 'chartjs' ), SBM_VERSION, true );
 
         // Localize AJAX parameters for search
         wp_localize_script( 'sbm-admin-js', 'sbmAjax', array(

@@ -429,84 +429,92 @@ jQuery(document).ready(function($) {
         var hasResults = false;
 
         // 1. Employees
-        if (data.employees && data.employees.length > 0) {
-            hasResults = true;
-            html += '<div class="sbm-search-group">';
-            html += '<div class="sbm-search-group-title">Employees</div>';
+        if (data.employees) {
             data.employees = $.isArray(data.employees) ? data.employees : $.map(data.employees, function(v) { return v; });
-            $.each(data.employees, function(index, item) {
-                var secondary = item.email;
-                if (item.iqama) {
-                    secondary += ' &middot; IQAMA: ' + item.iqama;
-                }
-                if (item.company) {
-                    secondary += ' &middot; ' + item.company;
-                }
-                html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
-                html += '<span class="dashicons dashicons-admin-users"></span>';
-                html += '<div class="sbm-search-result-text">';
-                html += '<span class="sbm-search-primary">' + escapeHtml(item.name) + '</span>';
-                html += '<span class="sbm-search-secondary">' + secondary + '</span>';
-                html += '</div></a>';
-            });
-            html += '</div>';
+            if (data.employees.length > 0) {
+                hasResults = true;
+                html += '<div class="sbm-search-group">';
+                html += '<div class="sbm-search-group-title">Employees</div>';
+                $.each(data.employees, function(index, item) {
+                    var secondary = item.email;
+                    if (item.iqama) {
+                        secondary += ' &middot; IQAMA: ' + item.iqama;
+                    }
+                    if (item.company) {
+                        secondary += ' &middot; ' + item.company;
+                    }
+                    html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
+                    html += '<span class="dashicons dashicons-admin-users"></span>';
+                    html += '<div class="sbm-search-result-text">';
+                    html += '<span class="sbm-search-primary">' + escapeHtml(item.name) + '</span>';
+                    html += '<span class="sbm-search-secondary">' + secondary + '</span>';
+                    html += '</div></a>';
+                });
+                html += '</div>';
+            }
         }
 
         // 2. Badges
-        if (data.badges && data.badges.length > 0) {
-            hasResults = true;
-            html += '<div class="sbm-search-group">';
-            html += '<div class="sbm-search-group-title">Badges</div>';
+        if (data.badges) {
             data.badges = $.isArray(data.badges) ? data.badges : $.map(data.badges, function(v) { return v; });
-            $.each(data.badges, function(index, item) {
-                var secondary = 'Status: ' + item.status.toUpperCase() + ' &middot; Certified: ' + item.pass_date + ' &middot; Expires: ' + item.expiry_date;
-                if (item.user_name) {
-                    secondary = escapeHtml(item.user_name) + ' &middot; ' + secondary;
-                }
-                html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
-                html += '<span class="dashicons dashicons-awards"></span>';
-                html += '<div class="sbm-search-result-text">';
-                html += '<span class="sbm-search-primary">' + escapeHtml(item.badge_number) + '</span>';
-                html += '<span class="sbm-search-secondary">' + secondary + '</span>';
-                html += '</div></a>';
-            });
-            html += '</div>';
+            if (data.badges.length > 0) {
+                hasResults = true;
+                html += '<div class="sbm-search-group">';
+                html += '<div class="sbm-search-group-title">Badges</div>';
+                $.each(data.badges, function(index, item) {
+                    var secondary = 'Status: ' + item.status.toUpperCase() + ' &middot; Certified: ' + item.pass_date + ' &middot; Expires: ' + item.expiry_date;
+                    if (item.user_name) {
+                        secondary = escapeHtml(item.user_name) + ' &middot; ' + secondary;
+                    }
+                    html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
+                    html += '<span class="dashicons dashicons-shield"></span>';
+                    html += '<div class="sbm-search-result-text">';
+                    html += '<span class="sbm-search-primary">Badge #' + escapeHtml(item.badge_number) + '</span>';
+                    html += '<span class="sbm-search-secondary">' + secondary + '</span>';
+                    html += '</div></a>';
+                });
+                html += '</div>';
+            }
         }
 
         // 3. Entries
-        if (data.entries && data.entries.length > 0) {
-            hasResults = true;
-            html += '<div class="sbm-search-group">';
-            html += '<div class="sbm-search-group-title">Entries</div>';
+        if (data.entries) {
             data.entries = $.isArray(data.entries) ? data.entries : $.map(data.entries, function(v) { return v; });
-            $.each(data.entries, function(index, item) {
-                var secondary = escapeHtml(item.user_name) + ' &middot; ' + item.date + ' &middot; Score: ' + item.score + ' &middot; ' + item.result;
-                html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
-                html += '<span class="dashicons dashicons-media-text"></span>';
-                html += '<div class="sbm-search-result-text">';
-                html += '<span class="sbm-search-primary">Entry #' + item.entry_id + ' &middot; ' + escapeHtml(item.form_title) + '</span>';
-                html += '<span class="sbm-search-secondary">' + secondary + '</span>';
-                html += '</div></a>';
-            });
-            html += '</div>';
+            if (data.entries.length > 0) {
+                hasResults = true;
+                html += '<div class="sbm-search-group">';
+                html += '<div class="sbm-search-group-title">Entries</div>';
+                $.each(data.entries, function(index, item) {
+                    var secondary = escapeHtml(item.user_name) + ' &middot; ' + item.date + ' &middot; Score: ' + item.score + ' &middot; ' + item.result;
+                    html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
+                    html += '<span class="dashicons dashicons-media-text"></span>';
+                    html += '<div class="sbm-search-result-text">';
+                    html += '<span class="sbm-search-primary">' + escapeHtml(item.form_title) + '</span>';
+                    html += '<span class="sbm-search-secondary">' + secondary + '</span>';
+                    html += '</div></a>';
+                });
+                html += '</div>';
+            }
         }
 
         // 4. Forms
-        if (data.forms && data.forms.length > 0) {
-            hasResults = true;
-            html += '<div class="sbm-search-group">';
-            html += '<div class="sbm-search-group-title">Forms</div>';
+        if (data.forms) {
             data.forms = $.isArray(data.forms) ? data.forms : $.map(data.forms, function(v) { return v; });
-            $.each(data.forms, function(index, item) {
-                var secondary = 'Pass Threshold: ' + item.pass_percent + '% &middot; Validity: ' + item.validity_days + ' days';
-                html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
-                html += '<span class="dashicons dashicons-welcome-learn-more"></span>';
-                html += '<div class="sbm-search-result-text">';
-                html += '<span class="sbm-search-primary">' + escapeHtml(item.title) + '</span>';
-                html += '<span class="sbm-search-secondary">' + secondary + '</span>';
-                html += '</div></a>';
-            });
-            html += '</div>';
+            if (data.forms.length > 0) {
+                hasResults = true;
+                html += '<div class="sbm-search-group">';
+                html += '<div class="sbm-search-group-title">Forms</div>';
+                $.each(data.forms, function(index, item) {
+                    var secondary = 'Pass Threshold: ' + item.pass_percent + '% &middot; Validity: ' + item.validity_days + ' days';
+                    html += '<a href="' + escapeHtml(item.url) + '" class="sbm-search-result-item">';
+                    html += '<span class="dashicons dashicons-welcome-learn-more"></span>';
+                    html += '<div class="sbm-search-result-text">';
+                    html += '<span class="sbm-search-primary">' + escapeHtml(item.title) + '</span>';
+                    html += '<span class="sbm-search-secondary">' + secondary + '</span>';
+                    html += '</div></a>';
+                });
+                html += '</div>';
+            }
         }
 
         if (!hasResults) {
@@ -515,8 +523,26 @@ jQuery(document).ready(function($) {
 
         resultsDropdown.html(html).addClass('active');
     }
+});
+// Individual Training Record Lookup (Dashboard Page)
+jQuery(document).ready(function($) {
+    // Helper to escape HTML tags
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"'`=\/]/g, function (s) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '/': '&#x2F;',
+                '`': '&#x60;',
+                '=': '&#x3D;'
+            }[s];
+        });
+    }
 
-    // Handle Individual Training Record Lookup (Fix #10)
     $('#sbm_training_lookup_select').on('change', function() {
         var userId = $(this).val();
         var $spinner = $('#sbm-lookup-spinner');
