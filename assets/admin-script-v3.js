@@ -2,6 +2,8 @@
  * Safety Badges Manager Chart.js Initializations
  */
 jQuery(document).ready(function($) {
+    alert("Admin Script V3 is loaded and running!");
+
     // Helper to escape HTML tags
     function escapeHtml(str) {
         if (!str) return '';
@@ -58,7 +60,7 @@ jQuery(document).ready(function($) {
             var passes = [];
             var fails = [];
 
-            sbmChartData.trends.forEach(function(item) {
+            $.each(sbmChartData.trends, function(index, item) {
                 months.push(item.month);
                 passes.push(item.passes);
                 fails.push(item.fails);
@@ -124,7 +126,7 @@ jQuery(document).ready(function($) {
             var forecastMonths = [];
             var forecastCounts = [];
 
-            sbmChartData.expiry_forecast.forEach(function(item) {
+            $.each(sbmChartData.expiry_forecast, function(index, item) {
                 forecastMonths.push(item.month);
                 forecastCounts.push(item.count);
             });
