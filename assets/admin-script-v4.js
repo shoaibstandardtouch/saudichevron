@@ -385,28 +385,37 @@ jQuery(document).ready(function($) {
         spinner.addClass('is-active').show();
 
         searchTimeout = setTimeout(function() {
-            $.ajax({
-                url: sbmAjax.ajaxUrl,
-                type: 'GET',
-                dataType: 'json',
-                data: {
-                    action: 'sbm_global_search',
-                    nonce: sbmAjax.searchNonce,
-                    q: query
-                },
-                success: function(response) {
-                    spinner.removeClass('is-active').hide();
-                    if (response.success) {
-                        renderResults(response.data, query);
-                    } else {
-                        resultsDropdown.addClass('active').html('<div class="sbm-search-no-results">Error performing search</div>');
-                    }
-                },
-                error: function() {
-                    spinner.removeClass('is-active').hide();
-                    resultsDropdown.addClass('active').html('<div class="sbm-search-no-results">Error performing search</div>');
+            try {
+                if (typeof sbmAjax === 'undefined') {
+                    throw new Error('sbmAjax is undefined');
                 }
-            });
+                
+                $.ajax({
+                    url: sbmAjax.ajaxUrl,
+                    type: 'GET',
+                    dataType: 'json',
+                    data: {
+                        action: 'sbm_global_search',
+                        nonce: sbmAjax.searchNonce,
+                        q: query
+                    },
+                    success: function(response) {
+                        spinner.removeClass('is-active').hide();
+                        if (response.success) {
+                            renderResults(response.data, query);
+                        } else {
+                            resultsDropdown.addClass('active').html('<div class="sbm-search-no-results">Error performing search</div>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        spinner.removeClass('is-active').hide();
+                        resultsDropdown.addClass('active').html('<div class="sbm-search-no-results">Error performing search: ' + error + '</div>');
+                    }
+                });
+            } catch (e) {
+                spinner.removeClass('is-active').hide();
+                resultsDropdown.addClass('active').html('<div class="sbm-search-no-results">JS Error: ' + e.message + '</div>');
+            }
         }, 400);
     });
 
