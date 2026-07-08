@@ -493,6 +493,27 @@
     min-width: 800px;
 }
 
+/* Override WordPress default mobile table breakdown */
+@media screen and (max-width: 782px) {
+    .sbm-table-responsive table.wp-list-table {
+        display: table !important;
+    }
+    .sbm-table-responsive table.wp-list-table tbody {
+        display: table-row-group !important;
+    }
+    .sbm-table-responsive table.wp-list-table tr {
+        display: table-row !important;
+    }
+    .sbm-table-responsive table.wp-list-table th,
+    .sbm-table-responsive table.wp-list-table td {
+        display: table-cell !important;
+        width: auto !important;
+    }
+    .sbm-table-responsive table.wp-list-table .toggle-row {
+        display: none !important;
+    }
+}
+
 /* Mobile Responsive Adjustments */
 @media (max-width: 600px) {
     .sbm-card {
@@ -544,29 +565,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-.sbm-step-status {
-    font-weight: bold;
-}
-
-.sbm-quick-links-grid .sbm-search-result-item {
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-}
-
-.sbm-quick-links-grid .sbm-search-result-item:hover {
-    border-color: #cbd5e1;
-    background: #f8fafc;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-/* Global Search Dropdown and Card Styles */
-.sbm-global-search-card {
-    border-left: 5px solid #0f172a !important;
 }
 
 .sbm-global-search-card h3 {
