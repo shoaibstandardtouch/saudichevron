@@ -754,3 +754,30 @@
     color: #64748b;
     font-style: italic;
 }
+
+/* Quick Links Grid Styles */
+.sbm-quick-links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.sbm-quick-links-grid .sbm-search-result-item {
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+
+.sbm-quick-links-grid .sbm-search-result-item:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 600px) {
+    .sbm-quick-links-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
