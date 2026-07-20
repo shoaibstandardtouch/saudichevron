@@ -222,6 +222,10 @@ class SBM_Admin {
                 </div>
                 
                 <div id="sbm_training_lookup_results" style="display: none; overflow-x: auto;">
+                    <div id="sbm_training_lookup_info" style="margin-bottom: 15px; padding: 15px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; display: none;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; color: #0f172a;"><span id="sbm_lookup_emp_name"></span></h4>
+                        <p style="margin: 0; font-size: 13px; color: #64748b;"><?php esc_html_e( 'Iqama:', 'safety-badges-manager' ); ?> <span id="sbm_lookup_emp_iqama" style="font-weight: 600; color: #475569;"></span></p>
+                    </div>
                     <table class="wp-list-table widefat fixed striped" style="border: none; box-shadow: none;">
                         <thead>
                             <tr>
@@ -1826,7 +1830,16 @@ class SBM_Admin {
             }
         }
 
-        wp_send_json_success( $formatted );
+        $employee_name  = SBM()->gravity_forms->heal_user_display_name( $user_id );
+        $employee_iqama = get_user_meta( $user_id, 'sbm_iqama', true );
+
+        $response_data = array(
+            'employee_name'  => $employee_name,
+            'employee_iqama' => $employee_iqama ? $employee_iqama : esc_html__( 'N/A', 'safety-badges-manager' ),
+            'trainings'      => $formatted
+        );
+
+        wp_send_json_success( $response_data );
     }
 
     /**

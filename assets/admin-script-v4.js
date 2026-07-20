@@ -584,12 +584,23 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 $spinner.removeClass('is-active').hide();
                 if (response && response.success && response.data) {
+                    var data = response.data;
+                    var trainings = data.trainings || data;
+                    
+                    if (data.employee_name) {
+                        $('#sbm_lookup_emp_name').text(data.employee_name);
+                        $('#sbm_lookup_emp_iqama').text(data.employee_iqama);
+                        $('#sbm_training_lookup_info').show();
+                    } else {
+                        $('#sbm_training_lookup_info').hide();
+                    }
+
                     $tbody.empty();
-                    if (response.data.length === 0) {
+                    if (trainings.length === 0) {
                         $tbody.append('<tr><td colspan="4" style="text-align: center; padding: 15px;">No training records found for this employee.</td></tr>');
                     } else {
-                        response.data = $.isArray(response.data) ? response.data : $.map(response.data, function(v) { return v; });
-                        $.each(response.data, function(index, item) {
+                        trainings = $.isArray(trainings) ? trainings : $.map(trainings, function(v) { return v; });
+                        $.each(trainings, function(index, item) {
                             $tbody.append(
                                 '<tr>' +
                                 '<td>' + escapeHtml(item.date) + '</td>' +
