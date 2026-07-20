@@ -559,13 +559,12 @@ jQuery(document).ready(function($) {
         });
     }
 
-    $('#sbm_training_lookup_select').on('change', function() {
-        var userId = $(this).val();
+    function performTrainingLookup(userId, iqama) {
         var $spinner = $('#sbm_training_lookup_spinner');
         var $resultsDiv = $('#sbm_training_lookup_results');
         var $tbody = $('#sbm_training_lookup_body');
         
-        if (!userId) {
+        if (!userId && !iqama) {
             $resultsDiv.hide();
             return;
         }
@@ -579,6 +578,7 @@ jQuery(document).ready(function($) {
             data: {
                 action: 'sbm_employee_training_lookup',
                 user_id: userId,
+                iqama: iqama,
                 nonce: sbmAjax.searchNonce
             },
             success: function(response) {
@@ -611,5 +611,24 @@ jQuery(document).ready(function($) {
                 console.error(xhr.responseText);
             }
         });
+    }
+
+    $('#sbm_training_lookup_select').on('change', function() {
+        var userId = $(this).val();
+        $('#sbm_training_lookup_iqama').val(''); // Clear Iqama field
+        performTrainingLookup(userId, '');
+    });
+
+    $('#sbm_training_lookup_iqama_btn').on('click', function() {
+        var iqama = $('#sbm_training_lookup_iqama').val().trim();
+        $('#sbm_training_lookup_select').val(''); // Clear dropdown
+        performTrainingLookup('', iqama);
+    });
+
+    $('#sbm_training_lookup_iqama').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            $('#sbm_training_lookup_iqama_btn').click();
+        }
     });
 });

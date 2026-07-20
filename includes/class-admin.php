@@ -215,6 +215,9 @@ class SBM_Admin {
                         }
                         ?>
                     </select>
+                    <span style="font-weight: 600; margin-left: 10px; margin-right: 5px;"><?php esc_html_e( 'OR Iqama:', 'safety-badges-manager' ); ?></span>
+                    <input type="text" id="sbm_training_lookup_iqama" placeholder="<?php esc_attr_e( 'Enter Iqama...', 'safety-badges-manager' ); ?>" style="min-width: 150px; max-width: 100%;" />
+                    <button type="button" id="sbm_training_lookup_iqama_btn" class="button button-secondary"><?php esc_html_e( 'Search', 'safety-badges-manager' ); ?></button>
                     <span id="sbm_training_lookup_spinner" class="spinner" style="margin-top: 0;"></span>
                 </div>
                 
@@ -1774,8 +1777,27 @@ class SBM_Admin {
         }
 
         $user_id = isset( $_GET['user_id'] ) ? intval( $_GET['user_id'] ) : 0;
+        $iqama = isset( $_GET['iqama'] ) ? sanitize_text_field( $_GET['iqama'] ) : '';
+
+        if ( ! $user_id && ! empty( $iqama ) ) {
+            $users = get_users( array(
+                'meta_key'   => 'sbm_iqama',
+                'meta_value' => $iqama,
+                'number'     => 1,
+                'fields'     => 'ID'
+            ) );
+            if ( ! empty( $users ) ) {
+                $user_id = $users[0];
+            } else {
+                $user = get_user_by( 'login', $iqama );
+                if ( $user ) {
+                    $user_id = $user->ID;
+                }
+            }
+        }
+
         if ( ! $user_id ) {
-            wp_send_json_error( esc_html__( 'Invalid employee ID.', 'safety-badges-manager' ) );
+            wp_send_json_error( esc_html__( 'Employee not found or invalid ID.', 'safety-badges-manager' ) );
         }
 
         $trainings = $this->db->get_employee_all_trainings( $user_id );
